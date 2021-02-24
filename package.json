@@ -1,0 +1,34 @@
+{
+  "name": "jobd",
+  "version": "1.0.0",
+  "description": "job queue daemon",
+  "main": "src/jobd",
+  "homepage": "https://github.com/gch1p/jobd#readme",
+  "bugs": {
+    "url" : "https://github.com/gch1p/jobd/issues",
+    "email": "me@ch1p.io"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "jobd": "./src/jobd.js",
+    "jobd-master": "./src/jobd-master.js"
+  },
+  "keywords": [],
+  "author": "Evgeny Zinoviev",
+  "license": "BSD-2-Clause",
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "dependencies": {
+    "ini": "^2.0.0",
+    "lodash": "^4.17.21",
+    "log4js": "^6.3.0",
+    "minimist": "^1.2.5",
+    "mysql": "^2.18.1",
+    "promise-mysql": "^5.0.2",
+    "queue": "^6.0.2"
+  }
+}

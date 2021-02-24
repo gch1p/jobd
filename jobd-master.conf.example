@@ -1,0 +1,12 @@
+; server settings
+host = 0.0.0.0
+port = 13597
+;password =
+
+ping_interval = 30 ; seconds
+poke_throttle_interval = 0.5 ; seconds
+
+; logging
+log_file = /tmp/jobd-master.log
+log_level_file = info
+log_level_console = debug

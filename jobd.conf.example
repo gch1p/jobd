@@ -1,0 +1,38 @@
+; server settings
+host = 0.0.0.0
+port = 13596
+;password =
+
+master_host = 127.0.0.1
+master_port = 13597
+master_reconnect_timeout = 10
+
+; log
+log_file = /tmp/jobd.log
+log_level_file = info
+log_level_console = debug
+
+; mysql settings
+mysql_host = 10.211.55.6
+mysql_port = 3306
+mysql_user = jobd
+mysql_password = password
+mysql_database = jobd
+mysql_table = jobs
+mysql_fetch_limit = 10
+
+; launcher command template
+launcher = php /Users/ch1p/jobd-launcher.php --id {id}
+max_output_buffer = 16777216
+
+;
+; targets
+;
+
+[server1]
+low = 5
+normal = 5
+high = 5
+
+[global]
+normal = 3
