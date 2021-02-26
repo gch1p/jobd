@@ -1,7 +1,7 @@
 # jobd
 
-**jobd** is a simple job queue daemon written in Node.JS. It uses MySQL
-table as a storage.
+**jobd** is a simple job queue daemon written in Node.JS. It uses MySQL table as
+a storage.
 
 
 ## Installation
@@ -16,7 +16,10 @@ To be written
 
 ## MySQL setup
 
-Table scheme. You can add additional fields if you need.
+Minimal table scheme.
+
+In a real world, you would to add need additional fields such as `job_name` or
+`job_data`. 
 
 ```
 CREATE TABLE `jobs` (
@@ -37,7 +40,7 @@ CREATE TABLE `jobs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 ```
 
-You can turn `target` and `slot` to `ENUM`, for optimization.
+For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 
 ## License
 
