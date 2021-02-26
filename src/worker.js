@@ -218,6 +218,8 @@ class Worker extends EventEmitter {
         // get new jobs in transaction
         await db.beginTransaction()
 
+        let error = null
+
         let sqlFields = `id, status, target, slot`
         let sql
         if (data.id) {
@@ -255,19 +257,22 @@ class Worker extends EventEmitter {
             id = parseInt(id)
 
             if (status !== reqstatus) {
-                this.logger.warn(`${LOGPREFIX} status = ${status} != ${reqstatus}`)
+                error = `status = ${status} != ${reqstatus}`
+                this.logger.warn(`${LOGPREFIX} ${error}`)
                 ignored.push(id)
                 continue
             }
 
             if (!target || this.targets[target] === undefined) {
-                this.logger.error(`${LOGPREFIX} target '${target}' not found (job id=${id})`)
+                error = `target '${target}' not found (job id=${id})`
+                this.logger.error(`${LOGPREFIX} ${error}`)
                 ignored.push(id)
                 continue
             }
 
             if (!slot || this.targets[target].slots[slot] === undefined) {
-                this.logger.error(`${LOGPREFIX} slot '${slot}' of target '${target}' not found (job id=${id})`)
+                error = `slot '${slot}' of target '${target}' not found (job id=${id})`
+                this.logger.error(`${LOGPREFIX} ${error}`)
                 ignored.push(id)
                 continue
             }
@@ -324,6 +329,7 @@ class Worker extends EventEmitter {
         })
 
         return {
+            error,
             rows: results.length,
             accepted: accepted.length,
             ignored: ignored.length,

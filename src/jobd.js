@@ -173,10 +173,14 @@ async function onMessage({message, connection}) {
 
                 jobDoneAwaiters[id] = connection
 
-                const {accepted} = await worker.getTasks(null, STATUS_MANUAL, {id})
+                const {accepted, error} = await worker.getTasks(null, STATUS_MANUAL, {id})
                 if (!accepted) {
                     delete jobDoneAwaiters[id]
-                    connection.send(new ResponseMessage().setError('failed to run task')) // would be nice to provide some error...
+
+                    let message = 'failed to run task'
+                    if (typeof error === 'string')
+                        message += `: ${error}`
+                    connection.send(new ResponseMessage().setError(message))
                 }
 
                 break
