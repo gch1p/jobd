@@ -1,19 +1,19 @@
 {
   "name": "jobd",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "job queue daemon",
   "main": "src/jobd",
   "homepage": "https://github.com/gch1p/jobd#readme",
   "bugs": {
-    "url" : "https://github.com/gch1p/jobd/issues",
+    "url": "https://github.com/gch1p/jobd/issues",
     "email": "me@ch1p.io"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "jobd": "./src/jobd.js",
-    "jobd-master": "./src/jobd-master.js"
+    "jobd": "src/jobd.js",
+    "jobd-master": "src/jobd-master.js"
   },
   "keywords": [],
   "author": "Evgeny Zinoviev",
