@@ -8,7 +8,7 @@ master_port = 7081
 master_reconnect_timeout = 10
 
 ; log
-log_file = /var/log/jobd.log
+log_file = /var/log/jobd/jobd.log
 log_level_file = info
 log_level_console = debug
 

@@ -7,6 +7,6 @@ ping_interval = 30 ; seconds
 poke_throttle_interval = 0.5 ; seconds
 
 ; logging
-log_file = /var/log/jobd-master.log
+log_file = /var/log/jobd/jobd-master.log
 log_level_file = info
 log_level_console = debug
