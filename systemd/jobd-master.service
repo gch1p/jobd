@@ -1,0 +1,16 @@
+[Unit]
+Description=jobd master daemon
+After=mariadb.service
+
+[Service]
+User=nobody
+Group=nobody
+PermissionsStartOnly=true
+Restart=on-failure
+ProtectSystem=full
+PrivateDevices=true
+ExecStartPre=/usr/bin/install -d -o nobody /var/log/jobd
+ExecStart=/usr/bin/jobd-master --config /etc/jobd-master.conf
+
+[Install]
+WantedBy=multi-user.target
