@@ -1,10 +1,10 @@
 ; server settings
 host = 0.0.0.0
-port = 13596
+port = 7080
 ;password =
 
 master_host = 127.0.0.1
-master_port = 13597
+master_port = 7081
 master_reconnect_timeout = 10
 
 ; log

@@ -1,6 +1,6 @@
 ; server settings
 host = 0.0.0.0
-port = 13597
+port = 7081
 ;password =
 
 ping_interval = 30 ; seconds
