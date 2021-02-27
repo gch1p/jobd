@@ -1,6 +1,6 @@
 {
   "name": "jobd",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "job queue daemon",
   "main": "src/jobd",
   "homepage": "https://github.com/gch1p/jobd#readme",
