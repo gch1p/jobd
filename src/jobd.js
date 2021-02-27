@@ -46,6 +46,12 @@ async function main() {
     process.on('SIGTERM', term)
 
     const argv = minimist(process.argv.slice(2))
+
+    if (argv.help) {
+        usage()
+        process.exit(0)
+    }
+
     if (!argv.config)
         throw new Error('--config option is required')
 
@@ -233,7 +239,9 @@ function usage() {
     let s = `${process.argv[1]} OPTIONS
 
 Options:
-    --config <path>`
+    --config <path>
+    --help`
+
     console.log(s)
 }
 
