@@ -112,7 +112,7 @@ function parseMasterConfig(file) {
 }
 
 /**
- * @param {string} key
+ * @param {string|null} key
  * @return {string|number|object}
  */
 function get(key = null) {

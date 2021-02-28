@@ -42,6 +42,21 @@ CREATE TABLE `jobs` (
 
 For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 
+
+## TODO
+
+**jobd**:
+- `pause(targets)` / `continue(targets)`
+- `runManual` with multiple jobs
+
+**jobd-master**:
+- `status(workers=true)`
+- `pause(targets)` / `continue(targets)`
+
+both:
+- text protocol
+
+
 ## License
 
 BSD-2c

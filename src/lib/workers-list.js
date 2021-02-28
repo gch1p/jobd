@@ -1,7 +1,7 @@
 const intersection = require('lodash/intersection')
 const config = require('./config')
 const {getLogger} = require('./logger')
-const {RequestMessage} = require('./server')
+const {RequestMessage, PingMessage} = require('./server')
 const throttle = require('lodash/throttle')
 
 class WorkersList {
@@ -136,7 +136,7 @@ class WorkersList {
         this.workers
             .forEach(w => {
                 this.logger.trace(`sending ping to ${w.connection.remoteAddr()}`)
-                w.connection.send(new RequestMessage('ping'))
+                w.connection.send(new PingMessage())
             })
     }
 
