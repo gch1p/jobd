@@ -1,7 +1,7 @@
 const log4js = require('log4js')
 const fs = require('fs/promises')
 const fsConstants = require('fs').constants
-const util = require('src/lib/util')
+const util = require('./util')
 
 module.exports = {
     /**
