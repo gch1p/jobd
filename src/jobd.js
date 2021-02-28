@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 const minimist = require('minimist')
-const loggerModule = require('./logger')
-const config = require('./config')
-const db = require('./db')
-const {Server, Connection, RequestMessage, ResponseMessage} = require('./server')
-const {Worker, STATUS_MANUAL} = require('./worker')
+const loggerModule = require('./lib/logger')
+const config = require('./lib/config')
+const db = require('./lib/db')
+const {Server, Connection, RequestMessage, ResponseMessage} = require('./lib/server')
+const {Worker, STATUS_MANUAL} = require('./lib/worker')
 
 /**
  * @type {Worker}
