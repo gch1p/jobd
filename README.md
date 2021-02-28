@@ -55,6 +55,7 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 
 both:
 - text protocol
+- graceful shutdown
 
 
 ## License
