@@ -1,13 +1,10 @@
 #!/usr/bin/env node
 const minimist = require('minimist')
 const loggerModule = require('./logger')
-const configModule = require('./config')
+const config = require('./config')
 const db = require('./db')
 const {Server, Connection, RequestMessage, ResponseMessage} = require('./server')
 const {Worker, STATUS_MANUAL} = require('./worker')
-
-const {workerConfig} = configModule
-
 
 /**
  * @type {Worker}
@@ -57,20 +54,18 @@ async function main() {
 
     // read config
     try {
-        configModule.parseWorkerConfig(argv.config)
+        config.parseWorkerConfig(argv.config)
     } catch (e) {
         console.error(`config parsing error: ${e.message}`)
         process.exit(1)
     }
 
     await loggerModule.init({
-        file: workerConfig.log_file,
-        levelFile: workerConfig.log_level_file,
-        levelConsole: workerConfig.log_level_console,
+        file: config.get('log_file'),
+        levelFile: config.get('log_level_file'),
+        levelConsole: config.get('log_level_console'),
     })
     logger = loggerModule.getLogger('jobd')
-
-    // console.log(workerConfig)
 
     // init database
     try {
@@ -83,8 +78,8 @@ async function main() {
 
     // init queue
     worker = new Worker()
-    for (let targetName in workerConfig.targets) {
-        let slots = workerConfig.targets[targetName].slots
+    for (let targetName in config.get('targets')) {
+        let slots = config.get('targets')[targetName].slots
         // let target = new Target({name: targetName})
         // queue.addTarget(target)
 
@@ -105,11 +100,11 @@ async function main() {
     // start server
     server = new Server()
     server.on('message', onMessage)
-    server.start(workerConfig.port, workerConfig.host)
+    server.start(config.get('port'), config.get('host'))
     logger.info('server started')
 
     // connect to master
-    if (workerConfig.master_port && workerConfig.master_host)
+    if (config.get('master_port') && config.get('master_host'))
         connectToMaster()
 }
 
@@ -129,7 +124,7 @@ async function onMessage({message, connection}) {
         if (message.requestType !== 'ping')
             logger.info('onMessage:', message)
 
-        if (workerConfig.password && message.password !== workerConfig.password) {
+        if (config.get('password') && message.password !== config.get('password')) {
             connection.send(new ResponseMessage().setError('invalid password'))
             return connection.close()
         }
@@ -204,7 +199,7 @@ async function onMessage({message, connection}) {
 
 function connectToMaster() {
     const connection = new Connection()
-    connection.connect(workerConfig.master_host, workerConfig.master_port)
+    connection.connect(config.get('master_host'), config.get('master_port'))
 
     connection.on('connect', function() {
         connection.send(
@@ -218,7 +213,7 @@ function connectToMaster() {
         logger.warn(`connectToMaster: connection closed`)
         setTimeout(() => {
             connectToMaster()
-        }, workerConfig.master_reconnect_timeout * 1000)
+        }, config.get('master_reconnect_timeout') * 1000)
     })
 
     connection.on('message', (message) => {

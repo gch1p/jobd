@@ -1,4 +1,4 @@
-const {workerConfig} = require('./config')
+const config = require('./config')
 const {getLogger} = require('./logger')
 const mysql = require('promise-mysql')
 
@@ -7,10 +7,10 @@ const logger = getLogger('db')
 
 async function init() {
     link = await mysql.createConnection({
-        host: workerConfig.mysql_host,
-        user: workerConfig.mysql_user,
-        password: workerConfig.mysql_password,
-        database: workerConfig.mysql_database
+        host: config.get('mysql_host'),
+        user: config.get('mysql_user'),
+        password: config.get('mysql_password'),
+        database: config.get('mysql_database')
     })
 }
 

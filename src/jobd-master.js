@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 const minimist = require('minimist')
 const loggerModule = require('./logger')
-const configModule = require('./config')
+const config = require('./config')
 const {Server, ResponseMessage, RequestMessage} = require('./server')
 const WorkersList = require('./workers-list')
-const {masterConfig} = configModule
-
 
 /**
  * @type {Logger}
@@ -50,27 +48,25 @@ async function main() {
 
     // read config
     try {
-        configModule.parseMasterConfig(argv.config)
+        config.parseMasterConfig(argv.config)
     } catch (e) {
         console.error(`config parsing error: ${e.message}`)
         process.exit(1)
     }
 
     await loggerModule.init({
-        file: masterConfig.log_file,
-        levelFile: masterConfig.log_level_file,
-        levelConsole: masterConfig.log_level_console,
+        file: config.get('log_file'),
+        levelFile: config.get('log_level_file'),
+        levelConsole: config.get('log_level_console'),
     })
     logger = loggerModule.getLogger('jobd-master')
-
-    // console.log(masterConfig)
 
     workers = new WorkersList()
 
     // start server
     server = new Server()
     server.on('message', onMessage)
-    server.start(masterConfig.port, masterConfig.host)
+    server.start(config.get('port'), config.get('host'))
     logger.info('server started')
 }
 
@@ -89,7 +85,7 @@ async function onMessage({message, connection}) {
         if (message.requestType !== 'ping')
             logger.info('onMessage:', message)
 
-        if (masterConfig.password && message.password !== masterConfig.password) {
+        if (config.get('password') && message.password !== config.get('password')) {
             connection.send(new ResponseMessage().setError('invalid password'))
             return connection.close()
         }

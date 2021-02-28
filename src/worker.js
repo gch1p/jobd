@@ -4,7 +4,7 @@ const db = require('./db')
 const {timestamp} = require('./util')
 const {getLogger} = require('./logger')
 const EventEmitter = require('events')
-const {workerConfig} = require('./config')
+const config = require('./config')
 
 const STATUS_WAITING = 'waiting'
 const STATUS_MANUAL = 'manual'
@@ -140,7 +140,7 @@ class Worker extends EventEmitter {
         this.getTasks(targets)
             .then(({rows}) => {
                 let message = `${LOGPREFIX} ${rows} processed`
-                if (workerConfig.mysql_fetch_limit && rows >= workerConfig.mysql_fetch_limit) {
+                if (config.get('mysql_fetch_limit') && rows >= config.get('mysql_fetch_limit')) {
                     // it seems, there are more, so we'll need to perform another query
                     this.setPollTargets(targets)
                     message += `, scheduling more polls (targets: ${JSON.stringify(this.getPollTargets())})`
@@ -223,7 +223,7 @@ class Worker extends EventEmitter {
         let sqlFields = `id, status, target, slot`
         let sql
         if (data.id) {
-            sql = `SELECT ${sqlFields} FROM ${workerConfig.mysql_table} WHERE id=${db.escape(data.id)} FOR UPDATE`
+            sql = `SELECT ${sqlFields} FROM ${config.get('mysql_table')} WHERE id=${db.escape(data.id)} FOR UPDATE`
         } else {
             let targets
             if (target === null) {
@@ -233,9 +233,9 @@ class Worker extends EventEmitter {
             }  else {
                 targets = target
             }
-            let sqlLimit = workerConfig.mysql_fetch_limit !== 0 ? ` LIMIT 0, ${workerConfig.mysql_fetch_limit}` : ''
+            let sqlLimit = config.get('mysql_fetch_limit') !== 0 ? ` LIMIT 0, ${config.get('mysql_fetch_limit')}` : ''
             let sqlWhere = `status=${db.escape(reqstatus)} AND target IN (`+targets.map(db.escape).join(',')+`)`
-            sql = `SELECT ${sqlFields} FROM ${workerConfig.mysql_table} WHERE ${sqlWhere} ORDER BY id ${sqlLimit} FOR UPDATE`
+            sql = `SELECT ${sqlFields} FROM ${config.get('mysql_table')} WHERE ${sqlWhere} ORDER BY id ${sqlLimit} FOR UPDATE`
         }
 
         /** @type {object[]} results */
@@ -282,10 +282,10 @@ class Worker extends EventEmitter {
         }
 
         if (accepted.length)
-            await db.query(`UPDATE ${workerConfig.mysql_table} SET status='accepted' WHERE id IN (`+accepted.map(j => j.id).join(',')+`)`)
+            await db.query(`UPDATE ${config.get('mysql_table')} SET status='accepted' WHERE id IN (`+accepted.map(j => j.id).join(',')+`)`)
 
         if (ignored.length)
-            await db.query(`UPDATE ${workerConfig.mysql_table} SET status='ignored' WHERE id IN (`+ignored.join(',')+`)`)
+            await db.query(`UPDATE ${config.get('mysql_table')} SET status='ignored' WHERE id IN (`+ignored.join(',')+`)`)
 
         await db.commit()
 
@@ -340,13 +340,13 @@ class Worker extends EventEmitter {
      * @param {number} id
      */
     async run(id) {
-        let command = workerConfig.launcher.replace(/\{id\}/g, id)
+        let command = config.get('launcher').replace(/\{id\}/g, id)
         let args = command.split(/ +/)
         return new Promise((resolve, reject) => {
             this.logger.info(`run(${id}): launching`, args)
 
             let process = child_process.spawn(args[0], args.slice(1), {
-                maxBuffer: workerConfig.max_output_buffer
+                maxBuffer: config.get('max_output_buffer')
             })
             
             let stdoutChunks = []
@@ -425,7 +425,7 @@ class Worker extends EventEmitter {
             list.push(`${field}=${val}`)
         }
 
-        await db.query(`UPDATE ${workerConfig.mysql_table} SET ${list.join(', ')} WHERE id=?`, [id])
+        await db.query(`UPDATE ${config.get('mysql_table')} SET ${list.join(', ')} WHERE id=?`, [id])
     }
 
     /**

@@ -373,6 +373,8 @@ class Connection extends EventEmitter {
         if (!(message instanceof Message))
             throw new Error('send expects Message, got', message)
 
+        // TODO set password!
+
         let json = JSON.stringify(message.getAsObject())
         let buf = Buffer.concat([
             Buffer.from(json),

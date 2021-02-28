@@ -2,10 +2,7 @@ const fs = require('fs')
 const ini = require('ini')
 const {isNumeric} = require('./util')
 
-let workerConfig = {
-    targets: {},
-}
-let masterConfig = {}
+let config = null
 
 function readFile(file) {
     if (!fs.existsSync(file))
@@ -46,8 +43,9 @@ function processScheme(source, scheme) {
 }
 
 function parseWorkerConfig(file) {
-    const raw = readFile(file)
+    config = {}
 
+    const raw = readFile(file)
     const scheme = {
         host:     {required: true},
         port:     {required: true, type: 'int'},
@@ -72,7 +70,9 @@ function parseWorkerConfig(file) {
         launcher:          {required: true},
         max_output_buffer: {default: 1024*1024, type: 'int'},
     }
-    Object.assign(workerConfig, processScheme(raw, scheme))
+    Object.assign(config, processScheme(raw, scheme))
+
+    config.targets = {}
 
     // targets
     for (let target in raw) {
@@ -82,19 +82,20 @@ function parseWorkerConfig(file) {
         if (typeof raw[target] !== 'object')
             continue
 
-        workerConfig.targets[target] = {slots: {}}
+        config.targets[target] = {slots: {}}
         for (let slotName in raw[target]) {
             let slotLimit = parseInt(raw[target][slotName], 10)
             if (slotLimit < 1)
                 throw new Error(`${target}: slot ${slotName} has invalid limit`)
-            workerConfig.targets[target].slots[slotName] = slotLimit
+            config.targets[target].slots[slotName] = slotLimit
         }
     }
 }
 
 function parseMasterConfig(file) {
-    const raw = readFile(file)
+    config = {}
 
+    const raw = readFile(file)
     const scheme = {
         host:     {required: true},
         port:     {required: true, type: 'int'},
@@ -107,13 +108,28 @@ function parseMasterConfig(file) {
         log_level_file:    {default: 'warn'},
         log_level_console: {default: 'warn'},
     }
-    Object.assign(masterConfig, processScheme(raw, scheme))
+    Object.assign(config, processScheme(raw, scheme))
+}
+
+/**
+ * @param {string} key
+ * @return {string|number|object}
+ */
+function get(key = null) {
+    if (key === null)
+        return config
+
+    if (typeof config !== 'object')
+        throw new Error(`config is not loaded`)
+
+    if (!(key in config))
+        throw new Error(`config: ${key} not found`)
+
+    return config[key]
 }
 
 module.exports = {
     parseWorkerConfig,
     parseMasterConfig,
-
-    workerConfig,
-    masterConfig
+    get,
 }

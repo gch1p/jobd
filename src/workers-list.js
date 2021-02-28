@@ -1,5 +1,5 @@
 const intersection = require('lodash/intersection')
-const {masterConfig} = require('./config')
+const config = require('./config')
 const {getLogger} = require('./logger')
 const {RequestMessage} = require('./server')
 const throttle = require('lodash/throttle')
@@ -25,7 +25,7 @@ class WorkersList {
         /**
          * @type {NodeJS.Timeout}
          */
-        this.pingInterval = setInterval(this.sendPings, masterConfig.ping_interval * 1000)
+        this.pingInterval = setInterval(this.sendPings, config.get('ping_interval') * 1000)
 
         /**
          * @type {Logger}
@@ -100,7 +100,7 @@ class WorkersList {
             }
             this.logger.trace('_pokeWorkers: this.targetsWaitingToPoke:', this.targetsWaitingToPoke)
         }
-    }, masterConfig.poke_throttle_interval * 1000, {leading: true})
+    }, config.get('poke_throttle_interval') * 1000, {leading: true})
 
     /**
      * @param {Connection} connection
