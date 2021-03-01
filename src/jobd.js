@@ -5,6 +5,7 @@ const config = require('./lib/config')
 const db = require('./lib/db')
 const {Server, Connection, RequestMessage, ResponseMessage} = require('./lib/server')
 const {Worker, STATUS_MANUAL} = require('./lib/worker')
+const package_json = require('../package.json')
 
 /**
  * @type {Worker}
@@ -46,6 +47,11 @@ async function main() {
 
     if (argv.help) {
         usage()
+        process.exit(0)
+    }
+
+    if (argv.version) {
+        console.log(package_json.version)
         process.exit(0)
     }
 
@@ -250,7 +256,8 @@ function usage() {
 
 Options:
     --config <path>
-    --help`
+    --help
+    --version`
 
     console.log(s)
 }

@@ -4,6 +4,7 @@ const loggerModule = require('./lib/logger')
 const config = require('./lib/config')
 const {Server, ResponseMessage, RequestMessage} = require('./lib/server')
 const WorkersList = require('./lib/workers-list')
+const package_json = require('../package.json')
 
 /**
  * @type {Logger}
@@ -40,6 +41,11 @@ async function main() {
 
     if (argv.help) {
         usage()
+        process.exit(0)
+    }
+
+    if (argv.version) {
+        console.log(package_json.version)
         process.exit(0)
     }
 
@@ -150,7 +156,8 @@ function usage() {
 
 Options:
     --config <path>
-    --help`
+    --help
+    --version`
 
     console.log(s)
 }
