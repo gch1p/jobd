@@ -110,24 +110,66 @@ class WorkersList {
      */
     _pokeWorkerConnection(connection, targets) {
         this.logger.debug('_pokeWorkerConnection:', connection.remoteAddr(), targets)
+
         connection.sendRequest(
             new RequestMessage('poll', {
                 targets
             })
         )
+        .then(error => {
+            this.logger.error('_pokeWorkerConnection:', error)
+        })
     }
 
     /**
      * @return {{targets: string[], remoteAddr: string, remotePort: number}[]}
      */
-    getInfo() {
-        return this.workers.map(worker => {
-            return {
+    async getInfo(pollWorkers = false) {
+        const promises = []
+
+        const workers = [...this.workers]
+
+        for (let i = 0; i < workers.length; i++) {
+            let worker = workers[i]
+
+            let P
+            if (pollWorkers) {
+                P = worker.connection.sendRequest(new RequestMessage('status'))
+            } else {
+                P = Promise.resolve()
+            }
+
+            promises.push(P)
+        }
+
+        const results = await Promise.allSettled(promises)
+
+        let info = []
+        for (let i = 0; i < results.length; i++) {
+            const result = results[i]
+            const worker = workers[i]
+            const workerInfo = {
                 remoteAddr: worker.connection.socket?.remoteAddress,
                 remotePort: worker.connection.socket?.remotePort,
                 targets: worker.targets
             }
-        })
+
+            if (pollWorkers) {
+                if (result.status === 'fulfilled') {
+                    /**
+                     * @type {ResponseMessage}
+                     */
+                    let response = result.value
+                    workerInfo.workerStatus = response.data
+                } else if (result.status === 'rejected') {
+                    workerInfo.workerStatusError = result.reason?.message
+                }
+            }
+
+            info.push(workerInfo)
+        }
+
+        return info
     }
 
     /**

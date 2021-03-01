@@ -521,7 +521,7 @@ class Connection extends EventEmitter {
      * Send request
      *
      * @param {RequestMessage} message
-     * @return {Promise}
+     * @return {Promise<ResponseMessage>}
      */
     sendRequest(message) {
         if (!(message instanceof RequestMessage))

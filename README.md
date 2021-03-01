@@ -70,7 +70,9 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 * **`poke(targets: string[])`** — send `poll` requests to all registered workers that serve
   specified `targets`.
   
-* **`status()`** — returns list of registered workers and memory usage.
+* **`status(poll_workers=false: bool)`** — returns list of registered workers and
+  memory usage. If `pollWorkers` is true, sends `status()` request to all registered
+  workers and includes their responses.
 
 * **`run-manual(jobs: {id: int, target: string}[])`** — send `run-manual`
   requests to registered jobd instances serving specified targets, and return

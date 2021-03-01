@@ -125,14 +125,18 @@ async function onRequestMessage(message, connection) {
             }
 
             case 'status':
-                const info = workers.getInfo()
+                const info = await workers.getInfo(message.requestData?.poll_workers || false)
+
+                let status = {
+                    workers: info,
+                    memoryUsage: process.memoryUsage()
+                }
+
                 connection.send(
                     new ResponseMessage(message.requestNo)
-                        .setData({
-                            workers: info,
-                            memoryUsage: process.memoryUsage()
-                        })
+                        .setData(status)
                 )
+
                 break
 
             default:
