@@ -109,7 +109,7 @@ class WorkersList {
      */
     _pokeWorkerConnection(connection, targets) {
         this.logger.debug('_pokeWorkerConnection:', connection.remoteAddr(), targets)
-        connection.send(
+        connection.sendRequest(
             new RequestMessage('poll', {
                 targets
             })
