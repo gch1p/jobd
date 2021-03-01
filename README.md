@@ -53,10 +53,12 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 - `status(workers=true)`
 - `pause(targets)` / `continue(targets)`
 
-both:
+other:
 - text protocol
 - graceful shutdown
 - remove password from logger dumps
+- reload config at runtime
+- jobctl
 
 
 ## License
