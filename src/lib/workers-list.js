@@ -67,6 +67,7 @@ class WorkersList {
      */
     poke(targets) {
         this.logger.debug('poke:', targets)
+
         if (!Array.isArray(targets))
             throw new Error('targets must be Array')
 
