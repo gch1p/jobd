@@ -49,33 +49,38 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 
 [php-jobd-client](github.com/gch1p/php-jobd-client) (official)
 
-## jobd requests
+## Protocol
 
-* **`poll(targets=[])`** — get new tasks for specified `targets` from database.
+### jobd requests
+
+* **`poll(targets=[]: string[])`** — get new tasks for specified `targets` from database.
   If `targets` is empty or not specified, get tasks for all serving targets.
   
-* **`status`** — returns status of internal queues and memory usage.
+* **`status()`** — returns status of internal queues and memory usage.
 
-* **`run-manual(id)`** — enqueue and run job with specified `id` and `status` set to
-  `manual` and return results. 
+* **`run-manual(ids: int[])`** — enqueue and run jobs with specified IDs and
+  `status` set to `manual`, and return results. 
   
 
-## jobd-master requests
+### jobd-master requests
 
-* **`register-worker(targets)`** — used by a jobd instance to register itself
+* **`register-worker(targets: string[])`** — used by a jobd instance to register itself
   with master. You don't need it.
   
-* **`poke(targets)`** — send `poll` requests to all registered workers that serve
+* **`poke(targets: string[])`** — send `poll` requests to all registered workers that serve
   specified `targets`.
   
-* **`status`** — returns list of registered workers and memory usage.
+* **`status()`** — returns list of registered workers and memory usage.
+
+* **`run-manual(jobs: {id: int, target: string}[])`** — send `run-manual`
+  requests to registered jobd instances serving specified targets, and return
+  results.
 
 
 ## TODO
 
 **jobd**:
 - `pause(targets)` / `continue(targets)`
-- `run-manual` with multiple jobs
 
 **jobd-master**:
 - `status(workers=true)`
