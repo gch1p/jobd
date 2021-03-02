@@ -53,8 +53,8 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 
 ### jobd requests
 
-* **`poll(targets=[]: string[])`** — get new tasks for specified `targets` from database.
-  If `targets` is empty or not specified, get tasks for all serving targets.
+* **`poll(targets: string[])`** — get new tasks for specified `targets` from database.
+  If `targets` argument is not specified, get tasks for all serving targets.
   
 * **`status()`** — returns status of internal queues and memory usage.
 
@@ -92,7 +92,6 @@ other:
 - remove password from logger dumps
 - reload config at runtime
 - jobctl
-
 
 ## License
 

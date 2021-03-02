@@ -4,6 +4,7 @@ const loggerModule = require('./lib/logger')
 const config = require('./lib/config')
 const {Server, ResponseMessage, RequestMessage} = require('./lib/server')
 const WorkersList = require('./lib/workers-list')
+const {validateObjectSchema, validateTargetsList} = require('./lib/data-validator')
 const package_json = require('../package.json')
 
 /**
@@ -90,12 +91,16 @@ async function onRequestMessage(message, connection) {
         switch (message.requestType) {
             case 'register-worker': {
                 const targets = message.requestData?.targets || []
-                if (!targets.length) {
+
+                // validate data
+                try {
+                    validateTargetsList(targets)
+                } catch (e) {
                     connection.send(
                         new ResponseMessage(message.requestNo)
-                            .setError(`targets are empty`)
+                            .setError(e.message)
                     )
-                    break
+                    return
                 }
 
                 workers.add(connection, targets)
@@ -108,15 +113,22 @@ async function onRequestMessage(message, connection) {
 
             case 'poke': {
                 const targets = message.requestData?.targets || []
-                if (!targets.length) {
+
+                // validate data
+                try {
+                    validateTargetsList(targets)
+                } catch (e) {
                     connection.send(
                         new ResponseMessage(message.requestNo)
-                            .setError(`targets are empty`)
+                            .setError(e.message)
                     )
-                    break
+                    return
                 }
 
+                // poke workers
                 workers.poke(targets)
+
+                // reply to user
                 connection.send(
                     new ResponseMessage(message.requestNo)
                         .setData('ok')
@@ -137,6 +149,39 @@ async function onRequestMessage(message, connection) {
                         .setData(status)
                 )
 
+                break
+
+            case 'run-manual':
+                const jobs = message.requestData.jobs
+
+                // validate data
+                try {
+                    if (!Array.isArray(jobs))
+                        throw new Error('jobs must be array')
+
+                    for (let job of jobs) {
+                        validateObjectSchema(job, [
+                            // name     // type  // required
+                            ['id',      'i',     true],
+                            ['target',  's',     true],
+                        ])
+                    }
+                } catch (e) {
+                    connection.send(
+                        new ResponseMessage(message.requestNo)
+                            .setError(e.message)
+                    )
+                    return
+                }
+
+                // run jobs on workers
+                const data = await workers.runManual(jobs)
+
+                // send result to the client
+                connection.send(
+                    new ResponseMessage(message.requestNo)
+                        .setData(data)
+                )
                 break
 
             default:

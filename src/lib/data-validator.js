@@ -36,8 +36,9 @@ function checkType(expectedType, value) {
 /**
  * @param {object} data
  * @param {array} schema
+ * @throws Error
  */
-function validateMessageData(data, schema) {
+function validateObjectSchema(data, schema) {
     if (!isObject(data))
         throw new Error(`data is not an object`)
 
@@ -68,4 +69,21 @@ function validateMessageData(data, schema) {
     }
 }
 
-module.exports = {validateMessageData}
+function validateTargetsList(targets) {
+    if (!Array.isArray(targets))
+        throw new Error('targets must be array')
+
+    if (!targets.length)
+        throw new Error('targets are empty')
+
+    for (const t of targets) {
+        const type = typeof t
+        if (type !== 'string')
+            throw new Error(`all targets must be strings, ${type} given`)
+    }
+}
+
+module.exports = {
+    validateObjectSchema,
+    validateTargetsList
+}

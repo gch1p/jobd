@@ -4,7 +4,7 @@ const {getLogger} = require('./logger')
 const random = require('lodash/random')
 const config = require('./config')
 const {createCallablePromise} = require('./util')
-const {validateMessageData} = require('./data-validator')
+const {validateObjectSchema} = require('./data-validator')
 
 const EOT = 0x04
 const REQUEST_NO_LIMIT = 999999
@@ -43,7 +43,15 @@ class ResponseMessage extends Message {
         super(Message.RESPONSE)
 
         this.requestNo = requestNo
+
+        /**
+         * @type {null|string}
+         */
         this.error = null
+
+        /**
+         * @type {null|string|number|object|array}
+         */
         this.data = null
     }
 
@@ -466,7 +474,7 @@ class Connection extends EventEmitter {
                 let data = json.shift()
 
                 try {
-                    validateMessageData(data, [
+                    validateObjectSchema(data, [
                         // name      type    required
                         ['type',     's',    true],
                         ['no',       'i',    true],
@@ -489,7 +497,7 @@ class Connection extends EventEmitter {
                 let data = json.shift()
 
                 try {
-                    validateMessageData(data, [
+                    validateObjectSchema(data, [
                         // name   type     required
                         ['no',    'i',     true],
                         ['data',  'snoa',  false],
@@ -641,7 +649,7 @@ class Connection extends EventEmitter {
         this._handleClose()
         this.logger.warn(`socket error:`, error)
     }
-    
+
 }
 
 module.exports = {

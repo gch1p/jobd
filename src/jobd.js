@@ -5,6 +5,7 @@ const config = require('./lib/config')
 const db = require('./lib/db')
 const {uniq} = require('lodash')
 const {createCallablePromise} = require('./lib/util')
+const {validateTargetsList} = require('./lib/data-validator')
 const {
     Server,
     Connection,
@@ -145,22 +146,26 @@ async function onRequestMessage(message, connection) {
 
         switch (message.requestType) {
             case 'poll': {
-                const targets = message.requestData?.targets || []
-                if (!targets.length) {
-                    connection.send(
-                        new ResponseMessage(message.requestNo)
-                            .setError('empty targets')
-                    )
-                    break
-                }
+                // null means all
+                let targets = null
 
-                for (const t of targets) {
-                    if (!worker.hasTarget(t)) {
+                if (message.requestData?.targets !== undefined) {
+                    targets = message.requestData?.targets
+
+                    // validate data
+                    try {
+                        validateTargetsList(targets)
+
+                        for (const t of targets) {
+                            if (!worker.hasTarget(t))
+                                throw new Error(`invalid target '${t}'`)
+                        }
+                    } catch (e) {
                         connection.send(
                             new ResponseMessage(message.requestNo)
-                                .setError(`invalid target '${t}'`)
+                                .setError(e.message)
                         )
-                        break
+                        return
                     }
                 }
 
