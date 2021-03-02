@@ -67,13 +67,24 @@ class WorkersList {
     poke(targets) {
         this.logger.debug('poke:', targets)
 
-        if (!Array.isArray(targets))
-            throw new Error('targets must be Array')
-
         for (let t of targets)
             this.targetsToPoke[t] = true
 
         this._pokeWorkers()
+    }
+
+    /**
+     * @param targets
+     * @return {object[]}
+     */
+    getWorkersByTargets(targets) {
+        const found = []
+        for (const worker of this.workers) {
+            const intrs = intersection(worker.targets, targets)
+            if (intrs.length > 0)
+                found.push(worker)
+        }
+        return found
     }
 
     /**
@@ -328,6 +339,40 @@ class WorkersList {
     }
 
     /**
+     * @param {null|string[]} targets
+     */
+    pauseTargets(targets) {
+        return this._pauseContinueWorkers('pause', targets)
+    }
+
+    /**
+     * @param {null|string[]} targets
+     */
+    continueTargets(targets) {
+        return this._pauseContinueWorkers('continue', targets)
+    }
+
+    /**
+     * @param {string} action
+     * @param {null|string[]} targets
+     * @private
+     */
+    _pauseContinueWorkers(action, targets) {
+        (targets === null ? this.workers : this.getWorkersByTargets(targets))
+            .map(worker => {
+                this.logger.debug(`${action}Targets: sending ${action} request to ${worker.connection.remoteAddr()}`)
+
+                let data = {}
+                if (targets !== null)
+                    data.targets = intersection(worker.targets, targets)
+
+                worker.connection.sendRequest(
+                    new RequestMessage(action, data)
+                ).catch(this.onWorkerRequestError.bind(this, `${action}Targets`))
+            })
+    }
+
+    /**
      * @private
      */
     sendPings = () => {
@@ -336,6 +381,10 @@ class WorkersList {
                 this.logger.trace(`sending ping to ${w.connection.remoteAddr()}`)
                 w.connection.send(new PingMessage())
             })
+    }
+
+    onWorkerRequestError = (from, error) => {
+        this.logger.error(`${from}:`, error)
     }
 
 }

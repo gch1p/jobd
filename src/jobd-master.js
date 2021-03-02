@@ -104,6 +104,8 @@ function initRequestHandler() {
     requestHandler.set('register-worker', onRegisterWorker)
     requestHandler.set('status', onStatus)
     requestHandler.set('run-manual', onRunManual)
+    requestHandler.set('pause', onPause)
+    requestHandler.set('continue', onContinue)
 }
 
 /**
@@ -219,6 +221,73 @@ async function onRunManual(data, requestNo, connection) {
         new ResponseMessage(requestNo)
             .setData(jobsData)
     )
+}
+
+/**
+ * @param {object} data
+ * @param {number} requestNo
+ * @param {Connection} connection
+ */
+function onPause(data, requestNo, connection) {
+    let targets
+    if ((targets = validateInputTargets(data, requestNo, connection)) === false)
+        return
+
+    workers.pauseTargets(targets)
+    connection.send(
+        new ResponseMessage(requestNo)
+            .setData('ok')
+    )
+}
+
+/**
+ * @param {object} data
+ * @param {number} requestNo
+ * @param {Connection} connection
+ */
+function onContinue(data, requestNo, connection) {
+    let targets
+    if ((targets = validateInputTargets(data, requestNo, connection)) === false)
+        return
+
+    workers.continueTargets(targets)
+    connection.send(
+        new ResponseMessage(requestNo)
+            .setData('ok')
+    )
+}
+
+
+/**
+ * @private
+ * @param data
+ * @param requestNo
+ * @param connection
+ * @return {null|boolean|string[]}
+ */
+function validateInputTargets(data, requestNo, connection) {
+    // null means all targets
+    let targets = null
+
+    if (data.targets !== undefined) {
+        targets = data.targets
+
+        // validate data
+        try {
+            validateTargetsListFormat(targets)
+
+            // note: we don't check target names here
+            // as in jobd
+        } catch (e) {
+            connection.send(
+                new ResponseMessage(requestNo)
+                    .setError(e.message)
+            )
+            return false
+        }
+    }
+
+    return targets
 }
 
 
