@@ -50,7 +50,7 @@ class ResponseMessage extends Message {
         this.error = null
 
         /**
-         * @type {null|string|number|object|array}
+         * @type {null|object}
          */
         this.data = null
     }
@@ -108,7 +108,7 @@ class RequestMessage extends Message {
         this.requestType = type
 
         /**
-         * @type any
+         * @type {null|string|number|object|array}
          */
         this.requestData = data
 
