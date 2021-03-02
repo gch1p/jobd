@@ -56,6 +56,12 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 * **`poll(targets: string[])`** — get new tasks for specified `targets` from database.
   If `targets` argument is not specified, get tasks for all serving targets.
   
+* **`pause(targets: string[])`** — pause execution of tasks of specified targets.
+  If `targets` argument is not specified, pauses all targets.
+
+* **`continue(targets: string[])`** — continue execution of tasks of specified targets.
+  If `targets` argument is not specified, continues all targets.
+  
 * **`status()`** — returns status of internal queues and memory usage.
 
 * **`run-manual(ids: int[])`** — enqueue and run jobs with specified IDs and

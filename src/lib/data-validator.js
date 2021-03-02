@@ -69,7 +69,7 @@ function validateObjectSchema(data, schema) {
     }
 }
 
-function validateTargetsList(targets) {
+function validateTargetsListFormat(targets) {
     if (!Array.isArray(targets))
         throw new Error('targets must be array')
 
@@ -85,5 +85,5 @@ function validateTargetsList(targets) {
 
 module.exports = {
     validateObjectSchema,
-    validateTargetsList
+    validateTargetsListFormat
 }

@@ -449,8 +449,8 @@ class Connection extends EventEmitter {
                     }
                 }
             } catch (error) {
-                this.logger.error('failed to parse data as JSON')
-                this.logger.debug(rawMessage)
+                this.logger.error('error while parsing message:', error, rawMessage.toString('utf-8'))
+                this.logger.trace(rawMessage)
             }
         }
     }

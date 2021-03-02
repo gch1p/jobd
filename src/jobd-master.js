@@ -4,7 +4,7 @@ const loggerModule = require('./lib/logger')
 const config = require('./lib/config')
 const {Server, ResponseMessage} = require('./lib/server')
 const WorkersList = require('./lib/workers-list')
-const {validateObjectSchema, validateTargetsList} = require('./lib/data-validator')
+const {validateObjectSchema, validateTargetsListFormat} = require('./lib/data-validator')
 const RequestHandler = require('./lib/request-handler')
 const package_json = require('../package.json')
 
@@ -116,7 +116,7 @@ function onRegisterWorker(data, requestNo, connection) {
 
     // validate data
     try {
-        validateTargetsList(targets)
+        validateTargetsListFormat(targets)
     } catch (e) {
         connection.send(
             new ResponseMessage(requestNo)
@@ -143,7 +143,7 @@ function onPoke(data, requestNo, connection) {
 
     // validate data
     try {
-        validateTargetsList(targets)
+        validateTargetsListFormat(targets)
     } catch (e) {
         connection.send(
             new ResponseMessage(requestNo)

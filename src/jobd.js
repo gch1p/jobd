@@ -5,7 +5,7 @@ const config = require('./lib/config')
 const db = require('./lib/db')
 const {uniq} = require('lodash')
 const {createCallablePromise} = require('./lib/util')
-const {validateTargetsList} = require('./lib/data-validator')
+const {validateTargetsListFormat} = require('./lib/data-validator')
 const RequestHandler = require('./lib/request-handler')
 const {
     Server,
@@ -135,6 +135,8 @@ function initRequestHandler() {
     requestHandler.set('poll', onPollRequest)
     requestHandler.set('status', onStatus)
     requestHandler.set('run-manual', onRunManual)
+    requestHandler.set('pause', onPause)
+    requestHandler.set('continue', onContinue)
 }
 
 function initServer() {
@@ -163,28 +165,9 @@ async function initDatabase() {
  * @param {Connection} connection
  */
 function onPollRequest(data, requestNo, connection) {
-    // null means all targets
-    let targets = null
-
-    if (data.targets !== undefined) {
-        targets = data.targets
-
-        // validate data
-        try {
-            validateTargetsList(targets)
-
-            for (const t of targets) {
-                if (!worker.hasTarget(t))
-                    throw new Error(`invalid target '${t}'`)
-            }
-        } catch (e) {
-            connection.send(
-                new ResponseMessage(requestNo)
-                    .setError(e.message)
-            )
-            return
-        }
-    }
+    let targets
+    if ((targets = validateInputTargets(data, requestNo, connection)) === false)
+        return
 
     worker.setPollTargets(targets)
     worker.poll()
@@ -303,6 +286,80 @@ async function onRunManual(data, requestNo, connection) {
     }
 }
 
+/**
+ * @param {object} data
+ * @param {number} requestNo
+ * @param {Connection} connection
+ */
+function onPause(data, requestNo, connection) {
+    let targets
+    if ((targets = validateInputTargets(data, requestNo, connection)) === false)
+        return
+
+    worker.pauseTargets(targets)
+    connection.send(
+        new ResponseMessage(requestNo)
+            .setData('ok')
+    )
+}
+
+/**
+ * @param {object} data
+ * @param {number} requestNo
+ * @param {Connection} connection
+ */
+function onContinue(data, requestNo, connection) {
+    let targets
+    if ((targets = validateInputTargets(data, requestNo, connection)) === false)
+        return
+
+    // continue queues
+    worker.continueTargets(targets)
+
+    // poll just in case
+    worker.poll()
+
+    // ok
+    connection.send(
+        new ResponseMessage(requestNo)
+            .setData('ok')
+    )
+}
+
+/**
+ * @private
+ * @param data
+ * @param requestNo
+ * @param connection
+ * @return {null|boolean|string[]}
+ */
+function validateInputTargets(data, requestNo, connection) {
+    // null means all targets
+    let targets = null
+
+    if (data.targets !== undefined) {
+        targets = data.targets
+
+        // validate data
+        try {
+            validateTargetsListFormat(targets)
+
+            for (const t of targets) {
+                if (!worker.hasTarget(t))
+                    throw new Error(`invalid target '${t}'`)
+            }
+        } catch (e) {
+            connection.send(
+                new ResponseMessage(requestNo)
+                    .setError(e.message)
+            )
+            return false
+        }
+    }
+
+    return targets
+}
+
 function connectToMaster() {
     const port = config.get('master_port')
     const host = config.get('master_host')
@@ -351,7 +408,6 @@ Options:
 
     console.log(s)
 }
-
 
 function term() {
     if (logger)
