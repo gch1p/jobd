@@ -76,7 +76,6 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 - `pause(targets)` / `continue(targets)`
 
 other:
-- text protocol
 - graceful shutdown
 - remove password from logger dumps
 - reload config at runtime
