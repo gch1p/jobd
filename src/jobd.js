@@ -364,7 +364,7 @@ function connectToMaster() {
     const port = config.get('master_port')
     const host = config.get('master_host')
 
-    if (!host || port) {
+    if (!host || !port) {
         logger.debug('connectToMaster: master host or port is not defined')
         return
     }
