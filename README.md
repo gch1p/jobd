@@ -85,7 +85,6 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 - `pause(targets)` / `continue(targets)`
 
 **jobd-master**:
-- `status(workers=true)`
 - `pause(targets)` / `continue(targets)`
 
 other:
