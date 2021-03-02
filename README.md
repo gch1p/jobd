@@ -43,11 +43,33 @@ CREATE TABLE `jobs` (
 For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 
 
+## jobd requests
+
+* **`poll(targets=[])`** — get new tasks for specified `targets` from database.
+  If `targets` is empty or not specified, get tasks for all serving targets.
+  
+* **`status`** — returns status of internal queues and memory usage.
+
+* **`run-manual(id)`** — enqueue and run job with specified `id` and `status` set to
+  `manual` and return results. 
+  
+
+## jobd-master requests
+
+* **`register-worker(targets)`** — used by a jobd instance to register itself
+  with master. You don't need it.
+  
+* **`poke(targets)`** — send `poll` requests to all registered workers that serve
+  specified `targets`.
+  
+* **`status`** — returns list of registered workers and memory usage.
+
+
 ## TODO
 
 **jobd**:
 - `pause(targets)` / `continue(targets)`
-- `runManual` with multiple jobs
+- `run-manual` with multiple jobs
 
 **jobd-master**:
 - `status(workers=true)`
