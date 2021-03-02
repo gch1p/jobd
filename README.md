@@ -43,6 +43,12 @@ CREATE TABLE `jobs` (
 For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 
 
+## Clients
+
+#### PHP
+
+[php-jobd-client](github.com/gch1p/php-jobd-client) (official)
+
 ## jobd requests
 
 * **`poll(targets=[])`** — get new tasks for specified `targets` from database.
