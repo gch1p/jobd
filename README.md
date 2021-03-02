@@ -47,7 +47,7 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 
 #### PHP
 
-[php-jobd-client](github.com/gch1p/php-jobd-client) (official)
+[php-jobd-client](https://github.com/gch1p/php-jobd-client) (official)
 
 ## Protocol
 
