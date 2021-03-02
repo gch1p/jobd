@@ -69,11 +69,11 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 
 ### jobd-master requests
 
-* **`register-worker(targets: string[])`** — used by a jobd instance to register itself
-  with master. You don't need it.
+* **`register-worker(targets: string[])`** — used by a jobd instance to register
+  itself with master. You don't need it.
   
-* **`poke(targets: string[])`** — send `poll` requests to all registered workers that serve
-  specified `targets`.
+* **`poke(targets: string[])`** — send `poll` requests to all registered workers
+  that serve specified `targets`.
 
 * **`pause(targets: string[])`** — send `pause(targets)` requests to workers
   serving specified `targets`. If `targets` argument is not specified, sends
@@ -88,14 +88,13 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
   workers and includes their responses.
 
 * **`run-manual(jobs: {id: int, target: string}[])`** — send `run-manual`
-  requests to registered jobd instances serving specified targets, and return
-  results.
+  requests to registered jobd instances serving specified targets, aggregate an
+  return results.
 
 
 ## TODO
 
 - graceful shutdown
-- remove password from logger dumps
 - reload config at runtime
 - jobctl
 
