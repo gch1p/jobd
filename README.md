@@ -65,8 +65,7 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 * **`status()`** — returns status of internal queues and memory usage.
 
 * **`run-manual(ids: int[])`** — enqueue and run jobs with specified IDs and
-  `status` set to `manual`, and return results. 
-  
+  `status` set to `manual`, and return results.
 
 ### jobd-master requests
 
@@ -75,6 +74,14 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
   
 * **`poke(targets: string[])`** — send `poll` requests to all registered workers that serve
   specified `targets`.
+
+* **`pause(targets: string[])`** — send `pause(targets)` requests to workers
+  serving specified `targets`. If `targets` argument is not specified, sends
+  `pause()` to all workers.
+
+* **`continue(targets: string[])`** — send `continue(targets)` requests to workers
+  serving specified `targets`. If `targets` argument is not specified, sends
+  `continue()` to all workers.
   
 * **`status(poll_workers=false: bool)`** — returns list of registered workers and
   memory usage. If `pollWorkers` is true, sends `status()` request to all registered
@@ -87,13 +94,6 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
 
 ## TODO
 
-**jobd**:
-- `pause(targets)` / `continue(targets)`
-
-**jobd-master**:
-- `pause(targets)` / `continue(targets)`
-
-other:
 - graceful shutdown
 - remove password from logger dumps
 - reload config at runtime
