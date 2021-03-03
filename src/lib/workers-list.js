@@ -332,7 +332,7 @@ class WorkersList {
         // don't forget about skipped jobs
         if (exceptions.length) {
             for (let id of exceptions)
-                setError(id, `worker serving target for ${jobToTargetMap[id]} not found`)
+                setError(id, `worker serving target '${jobToTargetMap[id]}' not found`)
         }
 
         return response
