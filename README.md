@@ -84,7 +84,7 @@ For optimization purposes, you can turn fields `target` and `slot` into `ENUM`s.
   `continue()` to all workers.
   
 * **`status(poll_workers=false: bool)`** — returns list of registered workers and
-  memory usage. If `pollWorkers` is true, sends `status()` request to all registered
+  memory usage. If `poll_workers` is true, sends `status()` request to all registered
   workers and includes their responses.
 
 * **`run-manual(jobs: {id: int, target: string}[])`** — send `run-manual`
