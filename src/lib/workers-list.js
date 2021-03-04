@@ -126,7 +126,7 @@ class WorkersList {
                 targets
             })
         )
-        .then(error => {
+        .catch(error => {
             this.logger.error('_pokeWorkerConnection:', error)
         })
     }
@@ -359,7 +359,7 @@ class WorkersList {
      */
     _pauseContinueWorkers(action, targets) {
         (targets === null ? this.workers : this.getWorkersByTargets(targets))
-            .map(worker => {
+            .forEach(worker => {
                 this.logger.debug(`${action}Targets: sending ${action} request to ${worker.connection.remoteAddr()}`)
 
                 let data = {}
