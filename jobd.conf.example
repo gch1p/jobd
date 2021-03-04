@@ -25,14 +25,8 @@ mysql_fetch_limit = 10
 launcher = php /Users/ch1p/jobd-launcher.php --id {id}
 max_output_buffer = 16777216
 
-;
-; targets
-;
-
-[server1]
-low = 5
-normal = 5
-high = 5
-
-[global]
-normal = 3
+[targets]
+1/low = 2
+1/normal = 5
+1/high = 10
+global = 3

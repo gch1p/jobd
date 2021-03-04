@@ -107,16 +107,13 @@ async function initApp(appName) {
 
 function initWorker() {
     worker = new Worker()
-    for (let targetName in config.get('targets')) {
-        let slots = config.get('targets')[targetName].slots
-        // let target = new Target({name: targetName})
-        // queue.addTarget(target)
 
-        for (let slotName in slots) {
-            let slotLimit = slots[slotName]
-            worker.addSlot(targetName, slotName, slotLimit)
-        }
+    const targets = config.get('targets')
+    for (const target in targets) {
+        let limit = targets[target]
+        worker.addTarget(target, limit)
     }
+
     worker.on('job-done', (data) => {
         if (jobPromises[data.id] !== undefined) {
             const P = jobPromises[data.id]
@@ -186,11 +183,10 @@ function onPollRequest(data, requestNo, connection) {
  * @param {Connection} connection
  */
 function onStatus(data, requestNo, connection) {
-    const qs = worker.getStatus()
     connection.send(
         new ResponseMessage(requestNo)
             .setData({
-                targets: qs.targets,
+                targets: worker.getStatus(),
                 jobPromisesCount: Object.keys(jobPromises).length,
                 memoryUsage: process.memoryUsage()
             })

@@ -13,7 +13,7 @@ function readFile(file) {
 
 function processScheme(source, scheme) {
     const result = {}
-    
+
     for (let key in scheme) {
         let opts = scheme[key]
         let ne = !(key in source) || !source[key]
@@ -34,11 +34,17 @@ function processScheme(source, scheme) {
                     throw new Error(`'${key}' must be a float`)
                 value = parseFloat(value)
                 break
+
+            case 'object':
+                if (typeof value !== 'object')
+                    throw new Error(`'${key}' must be an object`)
+
+                break
         }
 
         result[key] = value
     }
-    
+
     return result
 }
 
@@ -69,26 +75,23 @@ function parseWorkerConfig(file) {
 
         launcher:          {required: true},
         max_output_buffer: {default: 1024*1024, type: 'int'},
+        targets:           {required: true, type: 'object'},
     }
     Object.assign(config, processScheme(raw, scheme))
 
     config.targets = {}
-
-    // targets
-    for (let target in raw) {
+    for (let target in raw.targets) {
         if (target === 'null')
             throw new Error('word \'null\' is reserved, please don\'t use it as a target name')
 
-        if (typeof raw[target] !== 'object')
-            continue
+        if (!isNumeric(raw.targets[target]))
+            throw new Error(`value of target '${target}' must be a number`)
 
-        config.targets[target] = {slots: {}}
-        for (let slotName in raw[target]) {
-            let slotLimit = parseInt(raw[target][slotName], 10)
-            if (slotLimit < 1)
-                throw new Error(`${target}: slot ${slotName} has invalid limit`)
-            config.targets[target].slots[slotName] = slotLimit
-        }
+        let value = parseInt(raw.targets[target], 10)
+        if (value < 1)
+            throw new Error(`target '${target}' has invalid value`)
+
+        config.targets[target] = value
     }
 }
 
