@@ -125,7 +125,9 @@ function initWorker() {
             logger.trace(`job-done: resolving promise of job ${data.id}`)
             P.resolve(data)
         } else {
-            logger.warn(`job-done: jobPromises[${data.id}] is undefined`)
+            // this is not an error, as there will be no promise unless it's a manual job
+            // so this is totally normal situation, thus debug() and not warn() or error()
+            logger.debug(`job-done: jobPromises[${data.id}] is undefined`)
         }
     })
 }
