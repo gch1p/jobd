@@ -190,7 +190,7 @@ function onStatus(data, requestNo, connection) {
     connection.send(
         new ResponseMessage(requestNo)
             .setData({
-                queue: qs,
+                targets: qs.targets,
                 jobPromisesCount: Object.keys(jobPromises).length,
                 memoryUsage: process.memoryUsage()
             })

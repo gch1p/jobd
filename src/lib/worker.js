@@ -145,10 +145,13 @@ class Worker extends EventEmitter {
         let status = {targets: {}}
         for (const targetName in this.targets) {
             let target = this.targets[targetName]
-            status.targets[targetName] = {}
+            status.targets[targetName] = {
+                paused: target.paused,
+                slots: {}
+            }
             for (const slotName in target.slots) {
                 const queue = target.slots[slotName]
-                status.targets[targetName][slotName] = {
+                status.targets[targetName].slots[slotName] = {
                     concurrency: queue.concurrency,
                     length: queue.length,
                 }
