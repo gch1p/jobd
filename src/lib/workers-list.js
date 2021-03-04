@@ -101,7 +101,7 @@ class WorkersList {
                 found[t] = true
             })
             if (intrs.length > 0)
-                this._pokeWorkerConnection(worker.connection, targets)
+                this._pokeWorkerConnection(worker.connection, intrs)
         }
 
         for (let target of targets) {
