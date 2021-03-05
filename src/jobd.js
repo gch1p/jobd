@@ -5,7 +5,7 @@ const config = require('./lib/config')
 const db = require('./lib/db')
 const {uniq} = require('lodash')
 const {createCallablePromise} = require('./lib/util')
-const {validateTargetsListFormat} = require('./lib/data-validator')
+const {validateObjectSchema, validateTargetsListFormat} = require('./lib/data-validator')
 const RequestHandler = require('./lib/request-handler')
 const {
     Server,
@@ -136,6 +136,7 @@ function initRequestHandler() {
     requestHandler.set('run-manual', onRunManual)
     requestHandler.set('pause', onPause)
     requestHandler.set('continue', onContinue)
+    requestHandler.set('set-target-concurrency', onSetTargetConcurrency)
 }
 
 function initServer() {
@@ -318,6 +319,33 @@ function onContinue(data, requestNo, connection) {
     worker.poll()
 
     // ok
+    connection.send(
+        new ResponseMessage(requestNo)
+            .setData('ok')
+    )
+}
+
+/**
+ * @param {object} data
+ * @param {number} requestNo
+ * @param {Connection} connection
+ */
+function onSetTargetConcurrency(data, requestNo, connection) {
+    try {
+        validateObjectSchema(data, [
+            // name         // type  // required
+            ['concurrency', 'i',     true],
+            ['target',      's',     true],
+        ])
+    } catch (e) {
+        connection.send(
+            new ResponseMessage(requestNo)
+                .setError(e.message)
+        )
+        return
+    }
+
+    worker.setTargetConcurrency(data.target, data.concurrency)
     connection.send(
         new ResponseMessage(requestNo)
             .setData('ok')

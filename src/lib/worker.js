@@ -73,6 +73,17 @@ class Worker extends EventEmitter {
     }
 
     /**
+     * @param {string} target
+     * @param {number} concurrency
+     */
+    setTargetConcurrency(target, concurrency) {
+        if (!(target in this.targets))
+            throw new Error(`target '${target}' not found`)
+
+        this.targets[target].queue.concurrency = concurrency
+    }
+
+    /**
      * Stop queues associated with specified targets.
      *
      * @param {null|string[]} targets

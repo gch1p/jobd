@@ -67,6 +67,9 @@ for target is not enough for you, change it to fit your needs.
 * **`run-manual(ids: int[])`** — enqueue and run jobs with specified IDs and
   `status` set to `manual`, and return results.
 
+* **`set-target-concurrency(target: string, concurrency: int)`** — set concurrency
+  of target `target`.
+
 ### jobd-master requests
 
 * **`register-worker(targets: string[])`** — used by a jobd instance to register
