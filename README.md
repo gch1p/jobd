@@ -98,7 +98,6 @@ for target is not enough for you, change it to fit your needs.
 ## TODO
 
 - graceful shutdown
-- reload config at runtime
 - jobctl
 
 ## License
