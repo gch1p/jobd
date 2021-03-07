@@ -8,6 +8,8 @@ const {validateObjectSchema, validateTargetsListFormat} = require('./lib/data-va
 const RequestHandler = require('./lib/request-handler')
 const package_json = require('../package.json')
 
+const DEFAULT_CONFIG_PATH = "/etc/jobd-master.conf"
+
 /**
  * @type {Logger}
  */
@@ -51,7 +53,12 @@ async function initApp(appName) {
     process.on('SIGINT', term)
     process.on('SIGTERM', term)
 
-    const argv = minimist(process.argv.slice(2))
+    const argv = minimist(process.argv.slice(2), {
+        boolean: ['help', 'version'],
+        default: {
+            config: DEFAULT_CONFIG_PATH
+        }
+    })
 
     if (argv.help) {
         usage()
@@ -62,9 +69,6 @@ async function initApp(appName) {
         console.log(package_json.version)
         process.exit(0)
     }
-
-    if (!argv.config)
-        throw new Error('--config option is required')
 
     // read config
     try {
@@ -295,9 +299,9 @@ function usage() {
     let s = `${process.argv[1]} OPTIONS
 
 Options:
-    --config <path>
-    --help
-    --version`
+    --config <path>  Path to config. Default: ${DEFAULT_CONFIG_PATH}
+    --help           Show this help.
+    --version        Print version.`
 
     console.log(s)
 }

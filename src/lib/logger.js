@@ -3,13 +3,16 @@ const fs = require('fs/promises')
 const fsConstants = require('fs').constants
 const util = require('./util')
 
+const ALLOWED_LEVELS = ['trace', 'debug', 'info', 'warn', 'error']
+
 module.exports = {
     /**
      * @param {string} file
      * @param {string} levelFile
      * @param {string} levelConsole
+     * @param {boolean} disableTimestamps
      */
-    async init({file, levelFile, levelConsole}) {
+    async init({file, levelFile, levelConsole, disableTimestamps=false}) {
         const categories = {
             default: {
                 appenders: ['stdout-filter'],
@@ -17,19 +20,30 @@ module.exports = {
             }
         }
 
+        if (!ALLOWED_LEVELS.includes(levelConsole))
+            throw new Error(`Level ${levelConsole} is not allowed.`)
+
         const appenders = {
             stdout: {
                 type: 'stdout',
-                level: 'trace'
+                level: 'trace',
             },
             'stdout-filter': {
                 type: 'logLevelFilter',
                 appender: 'stdout',
-                level: levelConsole
+                level: levelConsole,
             }
         }
+        if (disableTimestamps)
+            appenders.stdout.layout = {
+                type: 'pattern',
+                pattern: '%[%p [%c]%] %m',
+            }
 
         if (file) {
+            if (!ALLOWED_LEVELS.includes(levelFile))
+                throw new Error(`Level ${levelFile} is not allowed.`)
+
             let exists
             try {
                 await fs.stat(file)

@@ -17,10 +17,11 @@ const {
     Worker,
     STATUS_MANUAL,
     JOB_NOTFOUND,
-    JOB_ACCEPTED,
     JOB_IGNORED
 } = require('./lib/worker')
 const package_json = require('../package.json')
+
+const DEFAULT_CONFIG_PATH = "/etc/jobd.conf"
 
 /**
  * @type {Worker}
@@ -72,7 +73,12 @@ async function initApp(appName) {
     process.on('SIGINT', term)
     process.on('SIGTERM', term)
 
-    const argv = minimist(process.argv.slice(2))
+    const argv = minimist(process.argv.slice(2), {
+        boolean: ['help', 'version'],
+        default: {
+            config: DEFAULT_CONFIG_PATH
+        }
+    })
 
     if (argv.help) {
         usage()
@@ -83,9 +89,6 @@ async function initApp(appName) {
         console.log(package_json.version)
         process.exit(0)
     }
-
-    if (!argv.config)
-        throw new Error('--config option is required')
 
     // read config
     try {
@@ -337,6 +340,9 @@ function onSetTargetConcurrency(data, requestNo, connection) {
             ['concurrency', 'i',     true],
             ['target',      's',     true],
         ])
+
+        if (data.concurrency <= 0)
+            throw new Error('Invalid concurrency value.')
     } catch (e) {
         connection.send(
             new ResponseMessage(requestNo)
@@ -395,42 +401,49 @@ function connectToMaster() {
         return
     }
 
-    const connection = new Connection()
-    connection.connect(host, port)
+    async function connect() {
+        const connection = new Connection()
+        await connection.connect(host, port)
 
-    connection.on('connect', function() {
-        connection.sendRequest(
-            new RequestMessage('register-worker', {
-                targets: worker.getTargets()
-            })
-        )
-        .then(response => {
+        try {
+            let response = await connection.sendRequest(
+                new RequestMessage('register-worker', {
+                    targets: worker.getTargets()
+                })
+            )
             logger.debug('connectToMaster: response:', response)
-        })
-        .catch(error => {
+        } catch (error) {
             logger.error('connectToMaster: error while awaiting response:', error)
+        }
+
+        connection.on('close', () => {
+            logger.warn(`connectToMaster: connection closed`)
+            tryToConnect()
         })
-    })
 
-    connection.on('close', () => {
-        logger.warn(`connectToMaster: connection closed`)
+        connection.on('request-message', (message, connection) => {
+            requestHandler.process(message, connection)
+        })
+    }
+
+    function tryToConnect(now = false) {
         setTimeout(() => {
-            connectToMaster()
-        }, config.get('master_reconnect_timeout') * 1000)
-    })
+            connect().catch(error => {
+                logger.warn(`connectToMaster: connection failed`, error)
+            })
+        }, now ? 0 : config.get('master_reconnect_timeout') * 1000)
+    }
 
-    connection.on('request-message', (message, connection) => {
-        requestHandler.process(message, connection)
-    })
+    tryToConnect(true)
 }
 
 function usage() {
     let s = `${process.argv[1]} OPTIONS
 
 Options:
-    --config <path>
-    --help
-    --version`
+    --config <path>  Path to config. Default: ${DEFAULT_CONFIG_PATH}
+    --help           Show this help.
+    --version        Print version.`
 
     console.log(s)
 }

@@ -1,5 +1,5 @@
 const {getLogger} = require('./logger')
-const {ResponseMessage} = require('./server')
+const {ResponseMessage, Connection} = require('./server')
 
 class RequestHandler {
 

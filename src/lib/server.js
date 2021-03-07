@@ -285,12 +285,19 @@ class Connection extends EventEmitter {
          */
         this._requestPromises = {}
 
+        /**
+         * @type {Promise}
+         * @private
+         */
+        this._connectPromise = null
+
         this._setLogger()
     }
 
     /**
      * @param {string} host
      * @param {number} port
+     * @return {Promise}
      */
     connect(host, port) {
         if (this.socket !== null)
@@ -298,14 +305,18 @@ class Connection extends EventEmitter {
 
         this._isOutgoing = true
 
+        this.logger.trace(`Connecting to ${host}:${port}`)
+
         this.socket = new net.Socket()
-        this.socket.connect({host, port})
+        this.socket.connect(port, host)
 
         this.remoteAddress = host
         this.remotePort = port
 
         this._setLogger()
         this._setSocketEvents()
+
+        return this._connectPromise = createCallablePromise()
     }
 
     /**
@@ -616,14 +627,19 @@ class Connection extends EventEmitter {
         }
 
         for (const no in this._requestPromises) {
-            this._requestPromises[no].reject(new Error('socket is closed'))
+            this._requestPromises[no].reject(new Error('Socket is closed'))
         }
 
         this._requestPromises = {}
     }
 
     onConnect = () => {
-        this.logger.debug('connection established')
+        if (this._connectPromise) {
+            this._connectPromise.resolve()
+            this._connectPromise = null
+        }
+
+        this.logger.debug('Connection established.')
         this.emit('connect')
     }
 
@@ -642,12 +658,16 @@ class Connection extends EventEmitter {
 
     onClose = (hadError) => {
         this._handleClose()
-        this.logger.debug(`socket closed` + (hadError ? ` with error` : ''))
+        this.logger.debug(`Socket closed` + (hadError ? ` with error` : ''))
     }
 
     onError = (error) => {
+        if (this._connectPromise) {
+            this._connectPromise.reject(error)
+            this._connectPromise = null
+        }
         this._handleClose()
-        this.logger.warn(`socket error:`, error)
+        this.logger.warn(`Socket error:`, error)
     }
 
 }

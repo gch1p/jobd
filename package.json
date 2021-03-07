@@ -13,7 +13,8 @@
   },
   "bin": {
     "jobd": "src/jobd.js",
-    "jobd-master": "src/jobd-master.js"
+    "jobd-master": "src/jobd-master.js",
+    "jobctl": "src/jobctl.js"
   },
   "keywords": [],
   "author": "Evgeny Zinoviev",
@@ -26,6 +27,7 @@
     "node": ">=14.0"
   },
   "dependencies": {
+    "columnify": "^1.5.4",
     "ini": "^2.0.0",
     "lodash": "^4.17.21",
     "log4js": "^6.3.0",

@@ -38,7 +38,15 @@ function processScheme(source, scheme) {
             case 'object':
                 if (typeof value !== 'object')
                     throw new Error(`'${key}' must be an object`)
+                break
 
+            case 'boolean':
+                if (value !== null) {
+                    value = value.trim()
+                    value = ['true', '1'].includes(value)
+                } else {
+                    value = false
+                }
                 break
         }
 
@@ -115,6 +123,40 @@ function parseMasterConfig(file) {
 }
 
 /**
+ * @param {string} file
+ * @param {{
+ *   master: boolean,
+ *   log_level: string|undefined,
+ *   host: string,
+ *   port: int,
+ * }} inputOptions
+ */
+function parseJobctlConfig(file, inputOptions) {
+    config = {}
+    const raw = readFile(file)
+
+    Object.assign(config, processScheme(raw, {
+        master: {type: 'boolean'},
+        password: {},
+        log_level: {default: 'warn'},
+    }))
+
+    if (inputOptions.master)
+        config.master = inputOptions.master
+    Object.assign(config, processScheme(raw, {
+        host:     {default: '127.0.0.1'},
+        port:     {default: config.master ? 7081 : 7080, type: 'int'}
+    }))
+
+    for (let key of ['log_level', 'host', 'port']) {
+        if (inputOptions[key])
+            config[key] = inputOptions[key]
+    }
+
+    // console.log('parseJobctlConfig [2]', config)
+}
+
+/**
  * @param {string|null} key
  * @return {string|number|object}
  */
@@ -131,8 +173,17 @@ function get(key = null) {
     return config[key]
 }
 
+/**
+ * @param {object} opts
+ */
+// function set(opts) {
+//     Object.assign(config, opts)
+// }
+
 module.exports = {
     parseWorkerConfig,
     parseMasterConfig,
+    parseJobctlConfig,
     get,
+    // set,
 }
