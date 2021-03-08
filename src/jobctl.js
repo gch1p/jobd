@@ -89,11 +89,6 @@ async function main() {
     }
 
     connection.close()
-
-    // initWorker()
-    // initRequestHandler()
-    // initServer()
-    // connectToMaster()
 }
 
 async function initApp(appName) {
