@@ -2,6 +2,7 @@
 host = 0.0.0.0
 port = 7080
 ;password =
+always_allow_localhost = 0
 
 master_host = 127.0.0.1
 master_port = 7081

@@ -9,6 +9,7 @@ const fs = require('fs/promises')
 const {Connection, RequestMessage} = require('./lib/server')
 const {isNumeric} = require('./lib/util')
 const columnify = require('columnify')
+const readline = require('readline')
 
 const DEFAULT_CONFIG_PATH = path.join(os.homedir(), '.jobctl.conf')
 
@@ -102,7 +103,7 @@ async function initApp(appName) {
     process.on('SIGTERM', term)
 
     const argv = minimist(process.argv.slice(2), {
-        boolean: ['master', 'version', 'help'],
+        boolean: ['master', 'version', 'help', 'password'],
         string: ['host', 'port', 'config', 'log-level'],
         stopEarly: true,
         default: {
@@ -121,16 +122,30 @@ async function initApp(appName) {
     // read config
     if (await exists(argv.config)) {
         try {
-            config.parseJobctlConfig(argv.config, {
-                master: argv.master,
-                log_level: argv['log-level'],
-                host: argv.host,
-                port: parseInt(argv.port, 10),
-            })
+            config.parseJobctlConfig(argv.config)
         } catch (e) {
             console.error(`config parsing error: ${e.message}`)
             process.exit(1)
         }
+    }
+
+    if (argv.master || config.get('master') === null)
+        config.set('master', argv.master)
+
+    for (let key of ['log-level', 'host', 'port']) {
+        if (key in argv)
+            config.set(key.replace('-', '_'), argv[key])
+    }
+
+    if (config.get('port') === null)
+        config.set('port', config.get('master') ? 7081 : 7080)
+
+    if (config.get('log_level') === null)
+        config.set('log_level', 'warn')
+
+    if (argv.password) {
+        let password = await question('Enter password: ')
+        config.set('password', password)
     }
 
     // init logger
@@ -167,9 +182,22 @@ async function initApp(appName) {
     return argv['_'] || []
 }
 
+/**
+ * @param {string} name
+ * @param {null|object} data
+ * @return {Promise<object>}
+ */
+async function request(name, data = null) {
+    let req = new RequestMessage(name, data)
+    let response = await connection.sendRequest(req)
+    if (response.error)
+        throw new Error(`Worker error: ${response.error}`)
+    return response.data
+}
+
 async function workerListTargets() {
     try {
-        let response = await connection.sendRequest(new RequestMessage('status'))
+        let response = await request('status')
         const rows = []
         const columns = [
             'target',
@@ -177,12 +205,12 @@ async function workerListTargets() {
             'length',
             'paused'
         ]
-        for (const target in response.data.targets) {
+        for (const target in response.targets) {
             const row = [
                 target,
-                response.data.targets[target].concurrency,
-                response.data.targets[target].length,
-                response.data.targets[target].paused ? 'yes' : 'no'
+                response.targets[target].concurrency,
+                response.targets[target].length,
+                response.targets[target].paused ? 'yes' : 'no'
             ]
             rows.push(row)
         }
@@ -196,12 +224,12 @@ async function workerListTargets() {
 
 async function workerMemoryUsage() {
     try {
-        let response = await connection.sendRequest(new RequestMessage('status'))
+        let response = await request('status')
         const columns = ['what', 'value']
         const rows = []
-        for (const what in response.data.memoryUsage)
-            rows.push([what, response.data.memoryUsage[what]])
-        rows.push(['pendingJobPromises', response.data.jobPromisesCount])
+        for (const what in response.memoryUsage)
+            rows.push([what, response.memoryUsage[what]])
+        rows.push(['pendingJobPromises', response.jobPromisesCount])
         table(columns, rows)
     } catch (error) {
         logger.error(error.message)
@@ -232,16 +260,8 @@ async function workerSetTargetConcurrency(argv) {
     concurrency = parseInt(concurrency, 10)
 
     try {
-        let response = await connection.sendRequest(
-            new RequestMessage('set-target-concurrency', {
-                target, concurrency
-            })
-        )
-
-        if (response.error)
-            throw new Error(`Worker error: ${response.error}`)
-
-        console.log(response.data)
+        let response = await request('set-target-concurrency', {target, concurrency})
+        console.log(response)
     } catch (error) {
         logger.error(error.message)
         logger.trace(error)
@@ -254,11 +274,11 @@ async function masterPoke(argv) {
 
 async function masterMemoryUsage() {
     try {
-        let response = await connection.sendRequest(new RequestMessage('status'))
+        let response = await request('status')
         const columns = ['what', 'value']
         const rows = []
-        for (const what in response.data.memoryUsage)
-            rows.push([what, response.data.memoryUsage[what]])
+        for (const what in response.memoryUsage)
+            rows.push([what, response.memoryUsage[what]])
         table(columns, rows)
     } catch (error) {
         logger.error(error.message)
@@ -268,10 +288,10 @@ async function masterMemoryUsage() {
 
 async function masterListWorkers() {
     try {
-        let response = await connection.sendRequest(new RequestMessage('status', {poll_workers: true}))
+        let response = await request('status', {poll_workers: true})
         const columns = ['worker', 'targets', 'concurrency', 'length', 'paused']
         const rows = []
-        for (const worker of response.data.workers) {
+        for (const worker of response.workers) {
             let remoteAddr = `${worker.remoteAddr}:${worker.remotePort}`
             let targets = Object.keys(worker.workerStatus.targets)
             let concurrencies = targets.map(t => worker.workerStatus.targets[t].concurrency)
@@ -297,14 +317,8 @@ async function sendCommandForTargets(targets, command) {
         throw new Error('No targets specified.')
 
     try {
-        let response = await connection.sendRequest(
-            new RequestMessage(command, {targets})
-        )
-
-        if (response.error)
-            throw new Error(`Worker error: ${response.error}`)
-
-        console.log(response.data)
+        let response = await request(command, {targets})
+        //console.log(response)
     } catch (error) {
         logger.error(error.message)
         logger.trace(error)
@@ -346,18 +360,14 @@ Options:
     --port                Port. Default: 7080 when --master is not used,
                           7081 otherwise.
     --config <path>       Path to config. Default: ~/.jobctl.conf
-                          Required for connecting to password-protected
-                          instances.
+    --password            Ask for a password before launching a command.
     --log-level <level>   'error', 'warn', 'info', 'debug' or 'trace'.
                           Default: warn
     --help:               Show this help.
     --version:            Print version. 
     
-Configuration file
-    Config file is required for connecting to password-protected jobd instances.
-    It can also be used to store hostname, port and log level.
-    
-    Here's an example of possible ~/.jobctl.conf file:
+Configuration file    
+    Example of possible ~/.jobctl.conf file:
     
     ;password = 
     hostname = 1.2.3.4
@@ -427,4 +437,21 @@ function table(columns, rows) {
             return `${text.toUpperCase()}\n${repeat()}`
         }
     }))
+}
+
+/**
+ * @param prompt
+ * @return {Promise<string>}
+ */
+function question(prompt) {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    })
+    return new Promise((resolve, reject) => {
+        rl.question(prompt, (answer) => {
+            rl.close()
+            resolve(answer)
+        })
+    })
 }

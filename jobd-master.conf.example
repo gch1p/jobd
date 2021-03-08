@@ -2,6 +2,7 @@
 host = 0.0.0.0
 port = 7081
 ;password =
+always_allow_localhost = 0
 
 ping_interval = 30 ; seconds
 poke_throttle_interval = 0.5 ; seconds

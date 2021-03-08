@@ -261,13 +261,7 @@ class Connection extends EventEmitter {
          * @type {boolean}
          * @private
          */
-        this._isAuthorized = config.get('password') === ''
-
-        /**
-         * @type {boolean}
-         * @private
-         */
-        this._textConversationAllowed = false
+        this._isAuthorized = !config.get('password')
 
         /**
          * @type {boolean}
@@ -328,10 +322,8 @@ class Connection extends EventEmitter {
         this.remoteAddress = socket.remoteAddress
         this.remotePort = socket.remotePort
 
-        if (this.remoteAddress === '127.0.0.1') {
+        if (this.remoteAddress === '127.0.0.1' && config.get('always_allow_localhost') === true)
             this._isAuthorized = true
-            this._textConversationAllowed = true
-        }
 
         this._setLogger()
         this._setSocketEvents()
@@ -548,7 +540,7 @@ class Connection extends EventEmitter {
 
         // send password once (when talking to jobd-master)
         if (!this._isAuthorized) {
-            message.setPassword(config.get('password'))
+            message.setPassword(config.get('password') || '')
             this._isAuthorized = true
         }
 

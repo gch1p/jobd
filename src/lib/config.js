@@ -2,7 +2,7 @@ const fs = require('fs')
 const ini = require('ini')
 const {isNumeric} = require('./util')
 
-let config = null
+let config = {}
 
 function readFile(file) {
     if (!fs.existsSync(file))
@@ -22,32 +22,34 @@ function processScheme(source, scheme) {
 
         let value = source[key] ?? opts.default ?? null
 
-        switch (opts.type) {
-            case 'int':
-                if (!isNumeric(value))
-                    throw new Error(`'${key}' must be an integer`)
-                value = parseInt(value, 10)
-                break
+        if (value !== null) {
+            switch (opts.type) {
+                case 'int':
+                    if (!isNumeric(value))
+                        throw new Error(`'${key}' must be an integer`)
+                    value = parseInt(value, 10)
+                    break
 
-            case 'float':
-                if (!isNumeric(value))
-                    throw new Error(`'${key}' must be a float`)
-                value = parseFloat(value)
-                break
+                case 'float':
+                    if (!isNumeric(value))
+                        throw new Error(`'${key}' must be a float`)
+                    value = parseFloat(value)
+                    break
 
-            case 'object':
-                if (typeof value !== 'object')
-                    throw new Error(`'${key}' must be an object`)
-                break
+                case 'object':
+                    if (typeof value !== 'object')
+                        throw new Error(`'${key}' must be an object`)
+                    break
 
-            case 'boolean':
-                if (value !== null) {
-                    value = value.trim()
-                    value = ['true', '1'].includes(value)
-                } else {
-                    value = false
-                }
-                break
+                case 'boolean':
+                    if (typeof value === 'string') {
+                        value = value.trim()
+                        value = ['true', '1'].includes(value)
+                    } else {
+                        value = !!value
+                    }
+                    break
+            }
         }
 
         result[key] = value
@@ -64,6 +66,7 @@ function parseWorkerConfig(file) {
         host:     {required: true},
         port:     {required: true, type: 'int'},
         password: {},
+        always_allow_localhost: {type: 'boolean', default: false},
 
         master_host: {},
         master_port: {type: 'int', default: 0},
@@ -111,6 +114,7 @@ function parseMasterConfig(file) {
         host:     {required: true},
         port:     {required: true, type: 'int'},
         password: {},
+        always_allow_localhost: {type: 'boolean', default: false},
 
         ping_interval:          {default: 30, type: 'int'},
         poke_throttle_interval: {default: 0.5, type: 'float'},
@@ -124,14 +128,8 @@ function parseMasterConfig(file) {
 
 /**
  * @param {string} file
- * @param {{
- *   master: boolean,
- *   log_level: string|undefined,
- *   host: string,
- *   port: int,
- * }} inputOptions
  */
-function parseJobctlConfig(file, inputOptions) {
+function parseJobctlConfig(file) {
     config = {}
     const raw = readFile(file)
 
@@ -141,17 +139,17 @@ function parseJobctlConfig(file, inputOptions) {
         log_level: {default: 'warn'},
     }))
 
-    if (inputOptions.master)
-        config.master = inputOptions.master
+    // if (inputOptions.master)
+    //     config.master = inputOptions.master
     Object.assign(config, processScheme(raw, {
         host:     {default: '127.0.0.1'},
-        port:     {default: config.master ? 7081 : 7080, type: 'int'}
+        port:     {/*default: config.master ? 7081 : 7080,*/ type: 'int'}
     }))
 
-    for (let key of ['log_level', 'host', 'port']) {
-        if (inputOptions[key])
-            config[key] = inputOptions[key]
-    }
+    // for (let key of ['log_level', 'host', 'port']) {
+    //     if (inputOptions[key])
+    //         config[key] = inputOptions[key]
+    // }
 
     // console.log('parseJobctlConfig [2]', config)
 }
@@ -164,26 +162,27 @@ function get(key = null) {
     if (key === null)
         return config
 
-    if (typeof config !== 'object')
-        throw new Error(`config is not loaded`)
-
-    if (!(key in config))
-        throw new Error(`config: ${key} not found`)
-
-    return config[key]
+    return config[key] || null
 }
 
 /**
- * @param {object} opts
+ * @param {object|string} key
+ * @param value
  */
-// function set(opts) {
-//     Object.assign(config, opts)
-// }
+function set(key, value) {
+    if (!config)
+        config = {}
+    if (typeof key === 'object') {
+        Object.assign(config, key)
+    } else {
+        config[key] = value
+    }
+}
 
 module.exports = {
     parseWorkerConfig,
     parseMasterConfig,
     parseJobctlConfig,
     get,
-    // set,
+    set,
 }
