@@ -83,8 +83,9 @@ async function main() {
 
     try {
         await availableCommands[command](argv)
-    } catch (e) {
-        logger.error(e.message)
+    } catch (error) {
+        logger.error(error.message)
+        logger.trace(error)
     }
 
     connection.close()
@@ -196,45 +197,35 @@ async function request(name, data = null) {
 }
 
 async function workerListTargets() {
-    try {
-        let response = await request('status')
-        const rows = []
-        const columns = [
-            'target',
-            'concurrency',
-            'length',
-            'paused'
+    let response = await request('status')
+    const rows = []
+    const columns = [
+        'target',
+        'concurrency',
+        'length',
+        'paused'
+    ]
+    for (const target in response.targets) {
+        const row = [
+            target,
+            response.targets[target].concurrency,
+            response.targets[target].length,
+            response.targets[target].paused ? 'yes' : 'no'
         ]
-        for (const target in response.targets) {
-            const row = [
-                target,
-                response.targets[target].concurrency,
-                response.targets[target].length,
-                response.targets[target].paused ? 'yes' : 'no'
-            ]
-            rows.push(row)
-        }
-
-        table(columns, rows)
-    } catch (error) {
-        logger.error(error.message)
-        logger.trace(error)
+        rows.push(row)
     }
+
+    table(columns, rows)
 }
 
 async function workerMemoryUsage() {
-    try {
-        let response = await request('status')
-        const columns = ['what', 'value']
-        const rows = []
-        for (const what in response.memoryUsage)
-            rows.push([what, response.memoryUsage[what]])
-        rows.push(['pendingJobPromises', response.jobPromisesCount])
-        table(columns, rows)
-    } catch (error) {
-        logger.error(error.message)
-        logger.trace(error)
-    }
+    let response = await request('status')
+    const columns = ['what', 'value']
+    const rows = []
+    for (const what in response.memoryUsage)
+        rows.push([what, response.memoryUsage[what]])
+    rows.push(['pendingJobPromises', response.jobPromisesCount])
+    table(columns, rows)
 }
 
 async function workerPoll(argv) {
@@ -259,13 +250,8 @@ async function workerSetTargetConcurrency(argv) {
 
     concurrency = parseInt(concurrency, 10)
 
-    try {
-        let response = await request('set-target-concurrency', {target, concurrency})
-        console.log(response)
-    } catch (error) {
-        logger.error(error.message)
-        logger.trace(error)
-    }
+    let response = await request('set-target-concurrency', {target, concurrency})
+    console.log(response)
 }
 
 async function masterPoke(argv) {
@@ -273,56 +259,41 @@ async function masterPoke(argv) {
 }
 
 async function masterMemoryUsage() {
-    try {
-        let response = await request('status')
-        const columns = ['what', 'value']
-        const rows = []
-        for (const what in response.memoryUsage)
-            rows.push([what, response.memoryUsage[what]])
-        table(columns, rows)
-    } catch (error) {
-        logger.error(error.message)
-        logger.trace(error)
-    }
+    let response = await request('status')
+    const columns = ['what', 'value']
+    const rows = []
+    for (const what in response.memoryUsage)
+        rows.push([what, response.memoryUsage[what]])
+    table(columns, rows)
 }
 
 async function masterListWorkers() {
-    try {
-        let response = await request('status', {poll_workers: true})
-        const columns = ['worker', 'targets', 'concurrency', 'length', 'paused']
-        const rows = []
-        for (const worker of response.workers) {
-            let remoteAddr = `${worker.remoteAddr}:${worker.remotePort}`
-            let targets = Object.keys(worker.workerStatus.targets)
-            let concurrencies = targets.map(t => worker.workerStatus.targets[t].concurrency)
-            let lengths = targets.map(t => worker.workerStatus.targets[t].length)
-            let pauses = targets.map(t => worker.workerStatus.targets[t].paused ? 'yes' : 'no')
-            rows.push([
-                remoteAddr,
-                targets.join("\n"),
-                concurrencies.join("\n"),
-                lengths.join("\n"),
-                pauses.join("\n")
-            ])
-        }
-        table(columns, rows)
-    } catch (error) {
-        logger.error(error.message)
-        logger.trace(error)
+    let response = await request('status', {poll_workers: true})
+    const columns = ['worker', 'targets', 'concurrency', 'length', 'paused']
+    const rows = []
+    for (const worker of response.workers) {
+        let remoteAddr = `${worker.remoteAddr}:${worker.remotePort}`
+        let targets = Object.keys(worker.workerStatus.targets)
+        let concurrencies = targets.map(t => worker.workerStatus.targets[t].concurrency)
+        let lengths = targets.map(t => worker.workerStatus.targets[t].length)
+        let pauses = targets.map(t => worker.workerStatus.targets[t].paused ? 'yes' : 'no')
+        rows.push([
+            remoteAddr,
+            targets.join("\n"),
+            concurrencies.join("\n"),
+            lengths.join("\n"),
+            pauses.join("\n")
+        ])
     }
+    table(columns, rows)
 }
 
 async function sendCommandForTargets(targets, command) {
     if (!targets.length)
         throw new Error('No targets specified.')
 
-    try {
-        let response = await request(command, {targets})
-        //console.log(response)
-    } catch (error) {
-        logger.error(error.message)
-        logger.trace(error)
-    }
+    let response = await request(command, {targets})
+    console.log(response)
 }
 
 
