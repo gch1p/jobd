@@ -4,7 +4,7 @@ After=mariadb.service
 
 [Service]
 User=nobody
-Group=nobody
+Group=nogroup
 PermissionsStartOnly=true
 Restart=on-failure
 ProtectSystem=full
