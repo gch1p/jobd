@@ -346,13 +346,12 @@ Configuration file
     process.exit(exitCode)
 }
 
-function term() {
+async function term() {
     if (logger)
         logger.info('shutdown')
 
-    loggerModule.shutdown(function() {
-        process.exit()
-    })
+    await loggerModule.shutdown()
+    process.exit()
 }
 
 async function exists(file) {

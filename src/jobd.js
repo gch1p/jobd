@@ -448,11 +448,10 @@ Options:
     console.log(s)
 }
 
-function term() {
+async function term() {
     if (logger)
         logger.info('shutdown')
 
-    loggerModule.shutdown(function() {
-        process.exit()
-    })
+    await loggerModule.shutdown()
+    process.exit()
 }

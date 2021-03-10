@@ -102,9 +102,12 @@ module.exports = {
 
     /**
      * @param cb
+     * @return {Promise}
      */
     shutdown(cb) {
-        log4js.shutdown(cb)
+        return new Promise((resolve, reject) => {
+            log4js.shutdown(resolve)
+        })
     },
 
     Logger: log4js.Logger,
