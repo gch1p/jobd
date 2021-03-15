@@ -184,7 +184,7 @@ As you can see:
 > Check out the [implementation example](#implementation-example).
 
 To create a new job (or multiple jobs), they must be added to the table. As mentioned
-earlier, adding or removing to/from the table is outsize the jobd's area of
+earlier, adding or removing to/from the table is outside the jobd's area of
 responsibility and this is by design. User must add jobs to the table manually.
 
 There are two kinds of jobs, in terms of how they are executed: **background** and
