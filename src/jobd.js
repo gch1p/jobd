@@ -5,8 +5,11 @@ const config = require('./lib/config')
 const db = require('./lib/db')
 const {uniq} = require('lodash')
 const {createCallablePromise} = require('./lib/util')
-const {validateObjectSchema, validateTargetsListFormat} = require('./lib/data-validator')
-const RequestHandler = require('./lib/request-handler')
+const {
+    validateInputTargetAndConcurrency,
+    validateInputTargets
+} = require('./lib/data-validator')
+const {RequestHandler} = require('./lib/request-handler')
 const {
     Server,
     Connection,
@@ -139,6 +142,8 @@ function initRequestHandler() {
     requestHandler.set('run-manual', onRunManual)
     requestHandler.set('pause', onPause)
     requestHandler.set('continue', onContinue)
+    requestHandler.set('add-target', onAddTarget)
+    requestHandler.set('remove-target', onRemoveTarget)
     requestHandler.set('set-target-concurrency', onSetTargetConcurrency)
 }
 
@@ -160,236 +165,6 @@ async function initDatabase() {
         process.exit(1)
     }
     logger.info('db initialized')
-}
-
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- */
-function onPollRequest(data, requestNo, connection) {
-    let targets
-    if ((targets = validateInputTargets(data, requestNo, connection)) === false)
-        return
-
-    worker.setPollTargets(targets)
-    worker.poll()
-
-    connection.send(
-        new ResponseMessage(requestNo)
-            .setData('ok')
-    )
-}
-
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- */
-function onStatus(data, requestNo, connection) {
-    connection.send(
-        new ResponseMessage(requestNo)
-            .setData({
-                targets: worker.getStatus(),
-                jobPromisesCount: Object.keys(jobPromises).length,
-                memoryUsage: process.memoryUsage()
-            })
-    )
-}
-
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- * @return {Promise<void>}
- */
-async function onRunManual(data, requestNo, connection) {
-    let {ids: jobIds} = data
-    jobIds = uniq(jobIds)
-
-    // if at least one of the jobs is already being run, reject
-    // if at least one item is not a number, reject
-    for (const id of jobIds) {
-        if (typeof id !== 'number') {
-            connection.send(
-                new ResponseMessage(requestNo)
-                    .setError(`all ids must be numbers, got ${typeof id}`)
-            )
-            return
-        }
-
-        if (id in jobPromises) {
-            connection.send(
-                new ResponseMessage(requestNo)
-                    .setError(`another client is already waiting for job ${id}`)
-            )
-            return
-        }
-    }
-
-    // create a bunch of promises, one per job
-    let promises = []
-    for (const id of jobIds) {
-        const P = createCallablePromise()
-        jobPromises[id] = P
-        promises.push(P)
-    }
-
-    // get jobs from database and enqueue for execution
-    const {results} = await worker.getTasks(null, STATUS_MANUAL, {ids: jobIds})
-
-    // wait till all jobs are done (or failed), then send a response
-    Promise.allSettled(promises).then(results => {
-        const response = {}
-
-        for (let i = 0; i < results.length; i++) {
-            let jobId = jobIds[i]
-            let result = results[i]
-
-            if (result.status === 'fulfilled') {
-                if (!('jobs' in response))
-                    response.jobs = {}
-
-                if (result.value?.id !== undefined)
-                    delete result.value.id
-
-                response.jobs[jobId] = result.value
-            } else if (result.status === 'rejected') {
-                if (!('errors' in response))
-                    response.errors = {}
-
-                response.errors[jobId] = result.reason?.message
-            }
-        }
-
-        connection.send(
-            new ResponseMessage(requestNo)
-                .setData(response)
-        )
-    })
-
-    // reject all ignored / non-found jobs
-    for (const [id, value] of results.entries()) {
-        if (!(id in jobPromises)) {
-            this.logger.error(`run-manual: ${id} not found in jobPromises`)
-            continue
-        }
-
-        if (value.result === JOB_IGNORED || value.result === JOB_NOTFOUND) {
-            const P = jobPromises[id]
-            delete jobPromises[id]
-
-            if (value.result === JOB_IGNORED)
-                P.reject(new Error(value.reason))
-
-            else if (value.result === JOB_NOTFOUND)
-                P.reject(new Error(`job ${id} not found`))
-        }
-    }
-}
-
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- */
-function onPause(data, requestNo, connection) {
-    let targets
-    if ((targets = validateInputTargets(data, requestNo, connection)) === false)
-        return
-
-    worker.pauseTargets(targets)
-    connection.send(
-        new ResponseMessage(requestNo)
-            .setData('ok')
-    )
-}
-
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- */
-function onContinue(data, requestNo, connection) {
-    let targets
-    if ((targets = validateInputTargets(data, requestNo, connection)) === false)
-        return
-
-    // continue queues
-    worker.continueTargets(targets)
-
-    // poll just in case
-    worker.poll()
-
-    // ok
-    connection.send(
-        new ResponseMessage(requestNo)
-            .setData('ok')
-    )
-}
-
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- */
-function onSetTargetConcurrency(data, requestNo, connection) {
-    try {
-        validateObjectSchema(data, [
-            // name         // type  // required
-            ['concurrency', 'i',     true],
-            ['target',      's',     true],
-        ])
-
-        if (data.concurrency <= 0)
-            throw new Error('Invalid concurrency value.')
-    } catch (e) {
-        connection.send(
-            new ResponseMessage(requestNo)
-                .setError(e.message)
-        )
-        return
-    }
-
-    worker.setTargetConcurrency(data.target, data.concurrency)
-    connection.send(
-        new ResponseMessage(requestNo)
-            .setData('ok')
-    )
-}
-
-/**
- * @private
- * @param data
- * @param requestNo
- * @param connection
- * @return {null|boolean|string[]}
- */
-function validateInputTargets(data, requestNo, connection) {
-    // null means all targets
-    let targets = null
-
-    if (data.targets !== undefined) {
-        targets = data.targets
-
-        // validate data
-        try {
-            validateTargetsListFormat(targets)
-
-            for (const t of targets) {
-                if (!worker.hasTarget(t))
-                    throw new Error(`invalid target '${t}'`)
-            }
-        } catch (e) {
-            connection.send(
-                new ResponseMessage(requestNo)
-                    .setError(e.message)
-            )
-            return false
-        }
-    }
-
-    return targets
 }
 
 function connectToMaster() {
@@ -454,4 +229,168 @@ async function term() {
 
     await loggerModule.shutdown()
     process.exit()
+}
+
+
+
+/****************************************/
+/**                                    **/
+/**          Request handlers          **/
+/**                                    **/
+/****************************************/
+
+/**
+ * @param {object} data
+ * @return {Promise<string>}
+ */
+async function onPollRequest(data) {
+    let targets = validateInputTargets(data, worker)
+
+    worker.setPollTargets(targets)
+    worker.poll()
+
+    return 'ok'
+}
+
+/**
+ * @param {object} data
+ * @return {Promise<object>}
+ */
+async function onStatus(data) {
+    return {
+        targets: worker.getStatus(),
+        jobPromisesCount: Object.keys(jobPromises).length,
+        memoryUsage: process.memoryUsage()
+    }
+}
+
+/**
+ * @param {{ids: number[]}} data
+ * @return {Promise}
+ */
+async function onRunManual(data) {
+    let {ids: jobIds} = data
+    jobIds = uniq(jobIds)
+
+    for (const id of jobIds) {
+        // if at least one item is not a number, reject
+        if (typeof id !== 'number')
+            throw new Error(`all ids must be numbers, got ${typeof id}`)
+
+        // if at least one of the jobs is already being run, reject
+        if (id in jobPromises)
+            throw new Error(`another client is already waiting for job ${id}`)
+    }
+
+    // create a bunch of promises, one per job
+    let promises = []
+    for (const id of jobIds) {
+        const P = createCallablePromise()
+        jobPromises[id] = P
+        promises.push(P)
+    }
+
+    // get jobs from database and enqueue for execution
+    const {results} = await worker.getTasks(null, STATUS_MANUAL, {ids: jobIds})
+
+    // wait till all jobs are done (or failed), then send a response
+    const P = Promise.allSettled(promises).then(results => {
+        const response = {}
+
+        for (let i = 0; i < results.length; i++) {
+            let jobId = jobIds[i]
+            let result = results[i]
+
+            if (result.status === 'fulfilled') {
+                if (!('jobs' in response))
+                    response.jobs = {}
+
+                if (result.value?.id !== undefined)
+                    delete result.value.id
+
+                response.jobs[jobId] = result.value
+            } else if (result.status === 'rejected') {
+                if (!('errors' in response))
+                    response.errors = {}
+
+                response.errors[jobId] = result.reason?.message
+            }
+        }
+
+        return response
+    })
+
+    // reject all ignored / non-found jobs
+    for (const [id, value] of results.entries()) {
+        if (!(id in jobPromises)) {
+            this.logger.error(`run-manual: ${id} not found in jobPromises`)
+            continue
+        }
+
+        if (value.result === JOB_IGNORED || value.result === JOB_NOTFOUND) {
+            const P = jobPromises[id]
+            delete jobPromises[id]
+
+            if (value.result === JOB_IGNORED)
+                P.reject(new Error(value.reason))
+
+            else if (value.result === JOB_NOTFOUND)
+                P.reject(new Error(`job ${id} not found`))
+        }
+    }
+
+    return P
+}
+
+/**
+ * @param {{targets: string[]}} data
+ */
+async function onPause(data) {
+    let targets = validateInputTargets(data, worker)
+    worker.pauseTargets(targets)
+    return 'ok'
+}
+
+/**
+ * @param {{targets: string[]}} data
+ */
+async function onContinue(data) {
+    let targets
+    if ((targets = validateInputTargets(data, worker)) === false)
+        return
+
+    // continue queues
+    worker.continueTargets(targets)
+
+    // poll just in case
+    worker.poll()
+
+    return 'ok'
+}
+
+/**
+ * @param {{target: string, concurrency: int}} data
+ */
+async function onAddTarget(data) {
+    validateInputTargetAndConcurrency(data)
+    worker.addTarget(data.target, data.concurrency)
+    return 'ok'
+}
+
+/**
+ * @param {{target: string}} data
+ */
+async function onRemoveTarget(data) {
+    validateInputTargetAndConcurrency(data, true)
+    worker.removeTarget(data.target)
+    return 'ok'
+}
+
+/**
+ * @param {object} data
+ */
+async function onSetTargetConcurrency(data) {
+    validateInputTargetAndConcurrency(data)
+    worker.setTargetConcurrency(data.target, data.concurrency)
+    return 'ok'
 }

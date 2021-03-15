@@ -132,6 +132,10 @@ Here is the list of supported requests, using `type(arguments)` notation.
 * **`run-manual(ids: int[])`** — enqueue and run jobs with specified IDs and
   `status` set to `manual`, and return results.
 
+* **`add-target(target: string, concurrency: int)`** — add target
+
+* **`remove-target(target: string, concurrency: int)`** — remove target
+
 * **`set-target-concurrency(target: string, concurrency: int)`** — set concurrency
   of target `target`.
 

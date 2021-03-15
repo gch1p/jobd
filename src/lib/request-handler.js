@@ -35,14 +35,17 @@ class RequestHandler {
 
         if (this.handlers.has(message.requestType)) {
             const f = this.handlers.get(message.requestType)
-            const result = f(message.requestData || {}, message.requestNo, connection)
+            const result = f(message.requestData || {}, connection)
             if (result instanceof Promise) {
-                result.catch(error => {
-                    this.logger.error(`${message.requestType}:`, error)
-
+                result.then(data => {
                     connection.send(
                         new ResponseMessage(message.requestNo)
-                            .setError('server error: ' + error?.message)
+                            .setData(data)
+                    )
+                }).catch(error => {
+                    connection.send(
+                        new ResponseMessage(message.requestNo)
+                            .setError(error?.message)
                     )
                 })
             }
@@ -56,4 +59,6 @@ class RequestHandler {
 
 }
 
-module.exports = RequestHandler
+module.exports = {
+    RequestHandler
+}

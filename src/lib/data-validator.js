@@ -11,6 +11,11 @@ const typeNames = {
 
 const logger = getLogger('data-validator')
 
+
+/**************************************/
+/**        Common Functions          **/
+/**************************************/
+
 /**
  * @param {string} expectedType
  * @param value
@@ -69,7 +74,12 @@ function validateObjectSchema(data, schema) {
     }
 }
 
-function validateTargetsListFormat(targets) {
+
+/********************************************/
+/**      Request input data validators      */
+/********************************************/
+
+function validateInputTargetsListFormat(targets) {
     if (!Array.isArray(targets))
         throw new Error('targets must be array')
 
@@ -83,7 +93,51 @@ function validateTargetsListFormat(targets) {
     }
 }
 
+function validateInputTargetAndConcurrency(data, onlyTarget = false) {
+    const schema = [
+        ['target',      's',     true],
+    ]
+
+    if (!onlyTarget) {
+        schema.push(
+            ['concurrency', 'i', true]
+        )
+    }
+
+    validateObjectSchema(data, schema)
+
+    if (!onlyTarget && data.concurrency <= 0)
+        throw new Error('Invalid concurrency value.')
+}
+
+/**
+ * @param data
+ * @param {Worker|null} worker
+ * @return {null|string[]}
+ */
+function validateInputTargets(data, worker) {
+    // null means all targets
+    let targets = null
+
+    if (data.targets !== undefined) {
+        targets = data.targets
+
+        validateInputTargetsListFormat(targets)
+
+        if (worker !== null) {
+            for (const t of targets) {
+                if (!worker.hasTarget(t))
+                    throw new Error(`invalid target '${t}'`)
+            }
+        }
+    }
+
+    return targets
+}
+
 module.exports = {
     validateObjectSchema,
-    validateTargetsListFormat
+    validateInputTargetsListFormat,
+    validateInputTargetAndConcurrency,
+    validateInputTargets,
 }

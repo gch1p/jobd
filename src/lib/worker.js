@@ -73,6 +73,25 @@ class Worker extends EventEmitter {
     }
 
     /**
+     * Deletes a queue.
+     *
+     * @param {string} target
+     */
+    removeTarget(target) {
+        if (!(target in this.targets))
+            throw new Error(`target '${target}' not found`)
+
+        const {queue} = this.targets[target]
+        if (queue.length > 0)
+            throw new Error(`queue is not empty`)
+
+        this.logger.debug(`deleteTarget: deleting target' ${target}'`)
+        queue.removeAllListeners()
+        queue.end()
+        delete this.targets[target]
+    }
+
+    /**
      * @param {string} target
      * @param {number} concurrency
      */

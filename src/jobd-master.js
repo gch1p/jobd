@@ -4,8 +4,12 @@ const loggerModule = require('./lib/logger')
 const config = require('./lib/config')
 const {Server, ResponseMessage} = require('./lib/server')
 const WorkersList = require('./lib/workers-list')
-const {validateObjectSchema, validateTargetsListFormat} = require('./lib/data-validator')
-const RequestHandler = require('./lib/request-handler')
+const {
+    validateObjectSchema,
+    validateInputTargetsListFormat,
+    validateInputTargets
+} = require('./lib/data-validator')
+const {RequestHandler} = require('./lib/request-handler')
 const package_json = require('../package.json')
 
 const DEFAULT_CONFIG_PATH = "/etc/jobd-master.conf"
@@ -112,189 +116,6 @@ function initRequestHandler() {
     requestHandler.set('continue', onContinue)
 }
 
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- */
-function onRegisterWorker(data, requestNo, connection) {
-    const targets = data.targets || []
-
-    // validate data
-    try {
-        validateTargetsListFormat(targets)
-    } catch (e) {
-        connection.send(
-            new ResponseMessage(requestNo)
-                .setError(e.message)
-        )
-        return
-    }
-
-    // register worker and reply with OK
-    workers.add(connection, targets)
-    connection.send(
-        new ResponseMessage(requestNo)
-            .setData('ok')
-    )
-}
-
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- */
-function onPoke(data, requestNo, connection) {
-    const targets = data.targets || []
-
-    // validate data
-    try {
-        validateTargetsListFormat(targets)
-    } catch (e) {
-        connection.send(
-            new ResponseMessage(requestNo)
-                .setError(e.message)
-        )
-        return
-    }
-
-    // poke workers
-    workers.poke(targets)
-
-    // reply to user
-    connection.send(
-        new ResponseMessage(requestNo)
-            .setData('ok')
-    )
-}
-
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- * @return {Promise<*>}
- */
-async function onStatus(data, requestNo, connection) {
-    const info = await workers.getInfo(data.poll_workers || false)
-
-    let status = {
-        workers: info,
-        memoryUsage: process.memoryUsage()
-    }
-
-    connection.send(
-        new ResponseMessage(requestNo)
-            .setData(status)
-    )
-}
-
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- * @return {Promise<*>}
- */
-async function onRunManual(data, requestNo, connection) {
-    const {jobs} = data
-
-    // validate data
-    try {
-        if (!Array.isArray(jobs))
-            throw new Error('jobs must be array')
-
-        for (let job of jobs) {
-            validateObjectSchema(job, [
-                // name     // type  // required
-                ['id',      'i',     true],
-                ['target',  's',     true],
-            ])
-        }
-    } catch (e) {
-        connection.send(
-            new ResponseMessage(requestNo)
-                .setError(e.message)
-        )
-        return
-    }
-
-    // run jobs on workers
-    const jobsData = await workers.runManual(jobs)
-
-    // send result to the client
-    connection.send(
-        new ResponseMessage(requestNo)
-            .setData(jobsData)
-    )
-}
-
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- */
-function onPause(data, requestNo, connection) {
-    let targets
-    if ((targets = validateInputTargets(data, requestNo, connection)) === false)
-        return
-
-    workers.pauseTargets(targets)
-    connection.send(
-        new ResponseMessage(requestNo)
-            .setData('ok')
-    )
-}
-
-/**
- * @param {object} data
- * @param {number} requestNo
- * @param {Connection} connection
- */
-function onContinue(data, requestNo, connection) {
-    let targets
-    if ((targets = validateInputTargets(data, requestNo, connection)) === false)
-        return
-
-    workers.continueTargets(targets)
-    connection.send(
-        new ResponseMessage(requestNo)
-            .setData('ok')
-    )
-}
-
-
-/**
- * @private
- * @param data
- * @param requestNo
- * @param connection
- * @return {null|boolean|string[]}
- */
-function validateInputTargets(data, requestNo, connection) {
-    // null means all targets
-    let targets = null
-
-    if (data.targets !== undefined) {
-        targets = data.targets
-
-        // validate data
-        try {
-            validateTargetsListFormat(targets)
-
-            // note: we don't check target names here
-            // as in jobd
-        } catch (e) {
-            connection.send(
-                new ResponseMessage(requestNo)
-                    .setError(e.message)
-            )
-            return false
-        }
-    }
-
-    return targets
-}
-
-
 function usage() {
     let s = `${process.argv[1]} OPTIONS
 
@@ -313,3 +134,86 @@ async function term() {
     await loggerModule.shutdown()
     process.exit()
 }
+
+
+
+/****************************************/
+/**                                    **/
+/**          Request handlers          **/
+/**                                    **/
+/****************************************/
+
+/**
+ * @param {object} data
+ * @param {Connection} connection
+ */
+async function onRegisterWorker(data, connection) {
+    const targets = validateInputTargets(data, null)
+    workers.add(connection, targets)
+    return 'ok'
+}
+
+/**
+ * @param {object} data
+ */
+async function onPoke(data) {
+    const targets = validateInputTargets(data, null)
+    workers.poke(targets)
+    return 'ok'
+}
+
+/**
+ * @param {object} data
+ * @return {Promise<*>}
+ */
+async function onStatus(data) {
+    const info = await workers.getInfo(data.poll_workers || false)
+    return {
+        workers: info,
+        memoryUsage: process.memoryUsage()
+    }
+}
+
+/**
+ * @param {object} data
+ * @return {Promise<*>}
+ */
+async function onRunManual(data) {
+    const {jobs} = data
+
+    // validate input
+    if (!Array.isArray(jobs))
+        throw new Error('jobs must be array')
+
+    for (let job of jobs) {
+        validateObjectSchema(job, [
+            // name     // type  // required
+            ['id',      'i',     true],
+            ['target',  's',     true],
+        ])
+    }
+
+    // run jobs, wait for results and send a response
+    return await workers.runManual(jobs)
+}
+
+/**
+ * @param {object} data
+ */
+function onPause(data) {
+    const targets = validateInputTargets(data, null)
+    workers.pauseTargets(targets)
+    return 'ok'
+}
+
+/**
+ * @param {object} data
+ * @param {number} requestNo
+ * @param {Connection} connection
+ */
+function onContinue(data, requestNo, connection) {
+    const targets = validateInputTargets(data, null)
+    workers.continueTargets(targets)
+    return 'ok'
+}
+

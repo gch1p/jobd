@@ -101,10 +101,9 @@ module.exports = {
     },
 
     /**
-     * @param cb
      * @return {Promise}
      */
-    shutdown(cb) {
+    shutdown() {
         return new Promise((resolve, reject) => {
             log4js.shutdown(resolve)
         })
