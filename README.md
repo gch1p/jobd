@@ -183,7 +183,7 @@ As you can see:
 > like `job_name` or `job_data`.<br>
 > Check out the [implementation example](#implementation-example).
 
-To create a new job (or multiple jobs), they must be added the table. As mentioned
+To create a new job (or multiple jobs), they must be added to the table. As mentioned
 earlier, adding or removing to/from the table is outsize the jobd's area of
 responsibility and this is by design. User must add jobs to the table manually.
 
