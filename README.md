@@ -248,7 +248,7 @@ targets and executed.
 client's point of view).
 
 After jobs have been added to a storage with `status` set to `manual`, a client
-have to send a [run-manual(ids: int[])](#run-manualids-int) request to a jobd
+has to send a [`run-manual(ids: int[])`](#run-manualids-int) request to a jobd
 instance that serves targets the new jobs are assigned to. When jobd receives 
 such request, it performs a `SELECT` query with `id IN ({ids})` condition.
 
