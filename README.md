@@ -110,20 +110,21 @@ heavy = 3
 quick = 20
 ```
 
-This config would allow you to run at most 3 heavy and up to 20 quick jobs
+This config would allow running at most 3 heavy and up to 20 quick jobs
 simultaneously.
 
-> :thought_balloon: The approach of having different targets (queues) for different kinds
-> of jobs is better than having a single queue with each job having a "priority".
+> :thought_balloon: In the author's opinion, the approach of having different
+> targets (queues) for different kinds of jobs is better than having a single
+> queue with each job having a "priority".
 > 
 > Imagine you had a single queue with maximum number of simultaneously running
 > jobs set to, say, 20. What would happen if you'd add a new job, even with the
-> highest priority possible, if there's already 20 slow jobs running? No matter
+> highest priority possible, when there's already 20 slow jobs running? No matter
 > how high the priority of new job is, it would have to wait.
 >
 > By defining different targets, jobd allows you to create dedicated queues for
-> such jobs, making sure there's always a room for high-priority tasks to run
-> them as early as possible.
+> such jobs, making sure there's always a room for high-priority tasks to run as
+> early as possible.
 
 ### Creating jobs
 
@@ -159,10 +160,10 @@ As you can see:
 4.  Each job has a `status`.
     - A job must be created with status set to `waiting` or `manual`.
     - A status becomes `accepted` when jobd reads the job from the table and
-    puts it to a queue, or it might become `ignored` in case of some error, like
-      invalid `target`, or invalid `status` when processing a [run-manual(ids: int)](#run-manualids-int)
-      request.
-    - Right before a job is getting started, its status becomes `running`.<br>
+      puts it to a queue, or it might become `ignored` in case of some error, like
+      invalid `target`, or invalid `status` when processing a
+      [run-manual(ids: int)](#run-manualids-int) request.
+    - Right before a job is getting started, its status becomes `running`.
     - Finally, when it's done, it is set to `done`.
 5.  The `result` field indicates whether a job completed successfully or not.
     - It is set to `ok` if the return code of launched command was `0`.
@@ -173,37 +174,33 @@ As you can see:
 8.  stdout and stderr of the process are written to `stdout` and `stderr` fields,
     accordingly.
     
-> :bulb: Maybe you noticed that there are no `priority` field and wonder how to create
-> jobs with different priorities. Indeed, jobd doesn't support "priorities".
-> Instead, you should create different targets for jobs of different priorities
-> and assign your jobs to corresponding targets. Learn more about it in the
-> [Targets](#targets) section.
-    
 > :warning: In a real world, you'll want to have a few more additional fields,
 > like `job_name` or `job_data`.<br>
 > Check out the [implementation example](#implementation-example).
 
-To create a new job (or multiple jobs), they must be added to the table. As mentioned
-earlier, adding or removing to/from the table is outside the jobd's area of
-responsibility and this is by design. User must add jobs to the table manually.
+To create a new job, it must be added to the table. As mentioned earlier, adding
+or removing rows from the table is by design outside the jobd's area of
+responsibility. A user must add jobs to the table manually.
 
 There are two kinds of jobs, in terms of how they are executed: **background** and
-**manual** (foreground).
+**manual** (or foreground).
 
 * Background jobs are created with `waiting` status. When jobd gets new
-  jobs from the table (after receiving a [`poll(target: strings[])`](#polltargets-string)
-  request: this process is described in the [launching background jobs](#launching-background-jobs)
-  section), such jobs are added to their queues and are executed at some point,
-  depending on the current queue status and concurrency limit. User does not
-  have control of the execution flow, the only feedback it has over the job
-  executing is the fields in the table that are updated during the execution. At
-  some point, `status` will become `done`, `result` and other fields will have
-  their values filled too, and that's it.
+  jobs from the table (which happens upon receiving a
+  [`poll(target: strings[])`](#polltargets-string); this process is described in
+  detail in the [launching background jobs](#launching-background-jobs) section),
+  such jobs are added to their queues and get executed at some point, depending
+  on the current queue status and concurrency limit. A user does not have control
+  of the execution flow, the only feedback it has is the fields in the table that
+  are going to be updated before, during and after the execution. At some point,
+  `status` will become `done`, `result` and other fields will have their values
+  filled too, and that's it.
 * Manual, or foreground jobs, is a different story. They must be created with
   `status` set to `manual`. These jobs are processed only upon a 
   [`run-manual(ids: int[])`](#run-manualids-int) request. When jobd receives such
   request, it reads and launches the specified jobs, waits for the results and
-  sends them back to the client in a response.
+  sends them back to the client in a response. Learn more about it under the 
+  [launching manual jobs](#launching-manual-jobs) section.
 
 ### Launching jobs
 
@@ -220,28 +217,55 @@ and jobd is currently executing a job with id 123, it will launch
 ### Launching background jobs
 
 After jobs have been added to storage, jobd must be notified about it. This is 
-done by a [`poll(targets: string[])`](#polltargets-string) request that a user (a client) sends to the
-jobd instance. The `targets` argument is an array (a list) of `targets` to poll.
-It can be omitted; in that case jobd will query for jobs for all targets it is
-serving.
+done by a [`poll(targets: string[])`](#polltargets-string) request that a user 
+(a client) sends to the jobd instance. The `targets` argument is an array
+(a list) of `targets` to poll. It can be omitted; in that case jobd will query
+for jobs for all targets it is serving.
 
-When jobd receives a [`poll(targets: string[])`](#polltargets-string) request and specified targets are
-not full (haven't reached their concurrency limit), it performs a `SELECT` query
-with `status='manual'` condition and `LIMIT` set according to the `mysql_fetch_limit`
-config value.
+When jobd receives a [`poll(targets: string[])`](#polltargets-string) request and
+specified targets are not full (haven't reached their concurrency limit), it
+performs a `SELECT` query with `status='waiting'` condition and `LIMIT` set
+according to the `mysql_fetch_limit`config value.
 
-For example, after receiving the [`poll(['1/low', '1/normal'])`](#polltargets-string) request, assuming
-`mysql_fetch_limit` is set to `100`, jobd will query jobs roughly like this:
+For example, after receiving the [`poll(['1/low', '1/normal'])`](#polltargets-string) 
+request, assuming `mysql_fetch_limit` is set to `100`, jobd will query jobs from
+a table roughly like this:
 ```mysql
-SELECT id, status, target FROM jobs WHERE status='manual' AND target IN ('1/low', '1/normal') ORDER BY id LIMIT 0, 100 FOR UPDATE
+SELECT id, status, target FROM jobs WHERE status='waiting' AND target IN ('1/low', '1/normal') ORDER BY id LIMIT 0, 100 FOR UPDATE
 ```
-However, if all specified targets are full at the time of jobd receiving the
-[`poll(targets: string[])`](#polltargets-string) request, the query will be delayed until at least one
-of the targets becomes available for new jobs.
+> However, if all specified targets are full at the time of jobd receiving the
+> [`poll(targets: string[])`](#polltargets-string) request, the query will be
+> delayed until at least one of the targets becomes available for new jobs.
+
+Then it loops through results, and either accepts a job (by setting
+its status in the table to `accepted`) or ignores it (by setting a status to
+`ignored`). Accepted jobs are then added to internal queues according to their
+targets and executed.
 
 ### Launching manual jobs
 
-To be written.
+"Manual" jobs is a way of launching jobs in a blocking way ("blocking" from a
+client's point of view).
+
+After jobs have been added to a storage with `status` set to `manual`, a client
+have to send a [run-manual(ids: int[])](#run-manualids-int) request to a jobd
+instance that serves targets the new jobs are assigned to. When jobd receives 
+such request, it performs a `SELECT` query with `id IN ({ids})` condition.
+
+For example, while processing the [`run-manual([5,6,7])`](#run-manualids-int)
+request, jobd will make a query that looks roughly something like this:
+```mysql
+SELECT id, status, target FROM jobs WHERE id IN ('5', '6', '7') FOR UPDATE
+```
+
+Then it loops through results, and either accepts a job (by setting its status
+in the table to `accepted`) or ignores it (by setting its status to `ignored`).
+Accepted jobs are then added to internal queues according to their targets and
+executed.
+
+When all requested jobs are finished, one way or another (succeeded or failed),
+jobd compiles and sends a response to the client. The response format is described
+[here](#run-manualids-int).
 
 ### Using jobd-master
 
