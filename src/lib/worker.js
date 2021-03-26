@@ -547,14 +547,17 @@ class Worker extends EventEmitter {
             update.stdout = data.stdout
 
         let list = []
+        let argv = []
+
         for (let field in update) {
             let val = update[field]
-            if (val !== null)
-                val = db.escape(val)
-            list.push(`${field}=${val}`)
+            list.push(`${field}=?`)
+            argv.push(val)
         }
 
-        await db.query(`UPDATE ${config.get('mysql_table')} SET ${list.join(', ')} WHERE id=?`, [id])
+        argv.push(id)
+
+        await db.query(`UPDATE ${config.get('mysql_table')} SET ${list.join(', ')} WHERE id=?`, argv)
     }
 
     /**
