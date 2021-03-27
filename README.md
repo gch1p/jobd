@@ -44,7 +44,7 @@ time already, and proven to be stable and efficient.
     - [supervisor](#supervisor)
     - [Other notes](#other-notes)
 - [Configuration](#configuration)
-    - [jobd](#jobd)
+    - [jobd](#jobd-1)
     - [jobd-master](#jobd-master)
     - [jobctl](#jobctl)
 - [Clients](#clients)
