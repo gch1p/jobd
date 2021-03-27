@@ -382,6 +382,10 @@ Without section:
   in every request
 - `launcher` *(required, string)* — a template of shell command that will be launched
   for every job. `{id}` will be replaced with job id
+- `launcher.cwd` *(string, default: `process.cwd()`)* — current working directory
+  for spawned launcher processes
+- `launcher.env.{any}` *(string)* — environment variable for spawned launcher
+  processes
 - `max_output_buffer` *(int, default: `1048576`)*
 
 Under the `[targets]` section, targets are specified. Each target is specified on

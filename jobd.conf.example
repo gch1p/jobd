@@ -24,6 +24,8 @@ mysql_fetch_limit = 10
 
 ; launcher command template
 launcher = php /Users/ch1p/jobd-launcher.php --id {id}
+launcher.cwd = /Users/ch1p
+launcher.env.LC_ALL = en_US.UTF-8
 max_output_buffer = 16777216
 
 [targets]

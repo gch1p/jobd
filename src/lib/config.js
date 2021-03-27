@@ -49,6 +49,14 @@ function processScheme(source, scheme) {
                         value = !!value
                     }
                     break
+
+                case 'map':
+                    value = {}
+                    for (let key1 in source) {
+                        if (key1.startsWith(`${key}.`))
+                            value[key1.substring(key.length+1)] = source[key1]
+                    }
+                    break
             }
         }
 
@@ -85,6 +93,8 @@ function parseWorkerConfig(file) {
         mysql_fetch_limit: {default: 100, type: 'int'},
 
         launcher:          {required: true},
+        'launcher.cwd':    {default: process.cwd()},
+        'launcher.env':    {type: 'map', default: {}},
         max_output_buffer: {default: 1024*1024, type: 'int'},
         targets:           {required: true, type: 'object'},
     }

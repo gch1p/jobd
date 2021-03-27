@@ -468,12 +468,17 @@ class Worker extends EventEmitter {
      */
     async run(id) {
         let command = config.get('launcher').replace(/\{id\}/g, id)
+        let cwd = config.get('launcher.cwd')
+        let env = Object.assign({}, process.env, config.get('launcher.env'))
+
         let args = command.split(/ +/)
         return new Promise((resolve, reject) => {
             this.logger.info(`run(${id}): launching`, args)
 
             let process = child_process.spawn(args[0], args.slice(1), {
-                maxBuffer: config.get('max_output_buffer')
+                maxBuffer: config.get('max_output_buffer'),
+                cwd,
+                env
             })
 
             let stdoutChunks = []
