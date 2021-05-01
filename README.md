@@ -37,7 +37,7 @@ time already, and proven to be stable and efficient.
     - [Launching background jobs](#launching-background-jobs)
     - [Launching manual jobs](#launching-manual-jobs)
     - [Using jobd-master](#using-jobd-master)
-- [Implementation example](#implementation-example)
+- [Integration example](#integration-example)
 - [Installation](#installation)
 - [Usage](#usage)
     - [systemd](#systemd)
@@ -269,23 +269,74 @@ jobd compiles and sends a response to the client. The response format is describ
 
 ### Using jobd-master
 
-To be written.
+If you had only one worker instance (one server, one node), it would not be a
+problem to use it directly. But what if you have tens or hundreds of servers,
+each of them serving different targets? This is where **jobd-master** comes in 
+play: it's been created to simplify usage and management of multiple workers.
+
+There should be only one instance of **jobd-master** running. All jobd workers
+are supposed to connect to it at startup. These connections between each worker
+and jobd-master are persistent.
+
+When jobd worker connects to the master instance, it sends it the list of targets
+the worker is serving (see Fig. 1).
+
+Let's imagine we have three servers (`srv-1`, `srv-2` and `srv-3`), each having
+a jobd worker. All of them are serving common target named `any`, but they're also
+configured to serve their own `low`, `normal` and `high` targets `s/low`,
+`s/normal` and `s/high` respectively (where `s` is the server number):
 
 ```
-Fig. 1
+Figure 1
 
-┌────────┐   ┌────────┐   ┌────────┐
-│  jobd  │   │  jobd  │   │  jobd  │
-└───┬────┘   └────┬───┘   └────┬───┘
-    │             │            │
-    │     ┌───────▼───────┐    │
-    └────►│  jobd-master  │◄───┘
-          └───────────────┘
+┌────────────┐ ┌────────────┐  ┌────────────┐
+│ jobd on    │ │ jobd on    │  │ jobd on    │
+│ srv-1      │ │ srv-2      │  │ srv-3      │
+├────────────┤ ├────────────┤  ├────────────┤
+│ Targets:   │ │ Targets:   │  │ Targets:   │
+│ - any      │ │ - any      │  │ - any      │
+│ - 1/low    │ │ - 2/low    │  │ - 3/low    │
+│ - 1/normal │ │ - 2/normal │  │ - 3/normal │
+│ - 1/high   │ │ - 2/high   │  │ - 3/high   │
+└──────┬─────┘ └─────┬──────┘  └────┬───────┘
+       │             │              │
+       │     ┌───────▼───────┐      │
+       └─────►  jobd-master  ◄──────┘
+             └───────────────┘
 ```
 
-## Implementation example
+When targets are added or removed at runtime (by [`add-target()`](#add-targettarget-string-concurrency-int)
+or [`remove-target()`](#remove-targettarget-string) request), workers notify the master
+too. Thus, jobd-master always know which workers serve which targets.
 
-To be written.
+To launch jobd via jobd-master, client needs to send a
+[`poke(targets: string[])`](#poketargets-string) request to jobd-master instance, and
+jobd-master will send [`poll()`](#polltargets-string) requests to all appropriate
+workers.
+
+For example, if you created, say, 5 jobs: 
+
+- 3 for the `any` target,
+- 1 for target `2/normal`, and
+- 1 for target `3/low`,
+  
+you send [`poke('any', '2/normal', '3/low')`](#poketargets-string)
+request to jobd-master. As a result, it will send:  
+
+- [`poll('any')`](#polltargets-string) request to a random worker serving the `any` target, 
+- [`poll('2/normal')`](#polltargets-string) request to `srv-2`, and 
+- [`poll('3/low')`](#polltargets-string) request to `srv-3`.
+
+Also, you can launch manual (foreground) jobs in parallel on multiple workers
+via jobd-master and synchronously (in a blocking way) get all results. To do that,
+you can use the [`run-manual(jobs: {id: int, target: string}[])`](#run-manualjobs-id-int-target-string)
+request.
+
+See the integration example for real code examples.
+
+## Integration example
+
+PHP: [jobd-php-example](https://github.com/gch1p/jobd-php-example)
 
 ## Installation
 
