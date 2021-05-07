@@ -205,6 +205,7 @@ function connectToMaster() {
         setTimeout(() => {
             connect().catch(error => {
                 logger.warn(`connectToMaster: connection failed`, error)
+                tryToConnect()
             })
         }, now ? 0 : config.get('master_reconnect_timeout') * 1000)
     }
