@@ -666,4 +666,4 @@ Example (w/o trailing `EOT`):
 
 ## License
 
-BSD-2c
+MIT
