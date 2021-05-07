@@ -26,7 +26,9 @@ In addition, there is a command line utility called **jobctl**.
 
 Originally, jobd was created as a saner alternative to Gearman. It's been used
 in production with a large PHP web application on multiple servers for quite some
-time already, and proven to be stable and efficient.
+time already, and proven to be stable and efficient. We were also monitoring the 
+memory usage of all our jobd instances for two months, and can confirm there
+are no leaks.
 
 ## Table of Contents
 
@@ -69,7 +71,7 @@ time already, and proven to be stable and efficient.
             - [run-manual(jobs: {id: int, target: string}[])](#run-manualjobs-id-int-target-string)
     - [Response Message](#response-message)
     - [Ping and Pong Messages](#ping-and-pong-messages)
-- [TODO](#todo)
+q- [TODO](#todo)
 - [License](#license)
 
 
