@@ -178,7 +178,7 @@ As you can see:
     
 > :warning: In a real world, you'll want to have a few more additional fields,
 > like `job_name` or `job_data`.<br>
-> Check out the [implementation example](#implementation-example).
+> Check out the [integration example](#integration-example).
 
 To create a new job, it must be added to the table. As mentioned earlier, adding
 or removing rows from the table is by design outside the jobd's area of
