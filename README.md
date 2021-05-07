@@ -61,7 +61,7 @@ time already, and proven to be stable and efficient.
             - [remove-target(target: string)](#remove-targettarget-string)
             - [set-target-concurrency(target: string, concurrency: int)](#set-target-concurrencytarget-string-concurrency-int)
         - [jobd-master requests](#jobd-master-requests)
-            - [register-worker(targets: string[])](#register-workertargets-string)
+            - [register-worker(targets: string[], name: string)](#register-workertargets-string-name-string)
             - [poke(targets: string[])](#poketargets-string)
             - [pause(targets: string[])](#pausetargets-string-1)
             - [continue(targets: string[])](#continuetargets-string-1)
@@ -411,6 +411,7 @@ Without section:
 - `always_allow_localhost` *(boolean, default: `false`)* — when set to `1`
   or `true`, allows accepting requests from clients connecting from localhost
   without password
+- `name` *(string, default: `os.hostname()`)* — worker name
 - `master_host` *(string)* — master hostname
 - `master_port` *(int)* — master port. If hostname or port is omitted, jobd
   will not connect to master.
@@ -608,8 +609,8 @@ Here is the list of supported requests, using `type(arguments)` notation.
 
 #### jobd-master requests
 
-* ##### `register-worker(targets: string[])`
-  Used by a jobd instance to register  itself with master. Clients don't need it.
+* ##### `register-worker(targets: string[], name: string)`
+  Used by jobd instances to register themselves with master. Clients don't need it.
 
 * ##### `poke(targets: string[])`
   Send [`poll(targets)`](#polltargets-string) requests to all registered workers that serve specified

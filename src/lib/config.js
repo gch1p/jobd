@@ -71,6 +71,7 @@ function parseWorkerConfig(file) {
 
     const raw = readFile(file)
     const scheme = {
+        name:     {},
         host:     {required: true},
         port:     {required: true, type: 'int'},
         password: {},

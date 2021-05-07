@@ -35,11 +35,12 @@ class WorkersList {
     /**
      * @param {Connection} connection
      * @param {string[]} targets
+     * @param {string} name
      */
-    add(connection, targets) {
-        this.logger.info(`add: connection from ${connection.remoteAddr()}, targets ${JSON.stringify(targets)}`)
+    add(connection, {targets, name}) {
+        this.logger.info(`add: connection from ${connection.remoteAddr()}, name ${name}, targets ${JSON.stringify(targets)}`)
 
-        this.workers.push({connection, targets})
+        this.workers.push({connection, targets, name})
         connection.on('close', () => {
             this.logger.info(`connection from ${connection.remoteAddr()} closed, removing worker`)
             this.workers = this.workers.filter(worker => {
@@ -161,7 +162,8 @@ class WorkersList {
             const workerInfo = {
                 remoteAddr: worker.connection.socket?.remoteAddress,
                 remotePort: worker.connection.socket?.remotePort,
-                targets: worker.targets
+                targets: worker.targets,
+                name: worker.name,
             }
 
             if (pollWorkers) {

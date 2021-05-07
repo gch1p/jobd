@@ -267,13 +267,13 @@ async function masterListWorkers() {
     const columns = ['worker', 'targets', 'concurrency', 'length', 'paused']
     const rows = []
     for (const worker of response.workers) {
-        let remoteAddr = `${worker.remoteAddr}:${worker.remotePort}`
+        let info = `${worker.name}\n(${worker.remoteAddr})`
         let targets = Object.keys(worker.workerStatus.targets)
         let concurrencies = targets.map(t => worker.workerStatus.targets[t].concurrency)
         let lengths = targets.map(t => worker.workerStatus.targets[t].length)
         let pauses = targets.map(t => worker.workerStatus.targets[t].paused ? 'yes' : 'no')
         rows.push([
-            remoteAddr,
+            info,
             targets.join("\n"),
             concurrencies.join("\n"),
             lengths.join("\n"),

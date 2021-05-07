@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const minimist = require('minimist')
+const os = require('os')
 const loggerModule = require('./lib/logger')
 const config = require('./lib/config')
 const db = require('./lib/db')
@@ -183,6 +184,7 @@ function connectToMaster() {
         try {
             let response = await connection.sendRequest(
                 new RequestMessage('register-worker', {
+                    name: config.get('name') || os.hostname(),
                     targets: worker.getTargets()
                 })
             )

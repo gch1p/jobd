@@ -149,7 +149,13 @@ async function term() {
  */
 async function onRegisterWorker(data, connection) {
     const targets = validateInputTargets(data, null)
-    workers.add(connection, targets)
+    if (typeof data.name !== 'string')
+        throw new Error('name is missing or invalid')
+
+    workers.add(connection, {
+        targets,
+        name: data.name
+    })
     return 'ok'
 }
 
