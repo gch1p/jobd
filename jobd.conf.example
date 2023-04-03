@@ -14,7 +14,7 @@ log_level_file = info
 log_level_console = debug
 
 ; mysql settings
-mysql_host = 10.211.55.6
+mysql_host = 127.0.0.1
 mysql_port = 3306
 mysql_user = jobd
 mysql_password = password

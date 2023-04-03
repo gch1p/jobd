@@ -114,6 +114,7 @@ function initRequestHandler() {
     requestHandler.set('run-manual', onRunManual)
     requestHandler.set('pause', onPause)
     requestHandler.set('continue', onContinue)
+    requestHandler.set('send-signal', onSendSignal)
 }
 
 function usage() {
@@ -223,3 +224,25 @@ function onContinue(data, requestNo, connection) {
     return 'ok'
 }
 
+
+/**
+ * @param {object} data
+ * @return {Promise<*>}
+ */
+async function onSendSignal(data) {
+    const {jobs} = data
+
+    if (!Array.isArray(jobs))
+        throw new Error('jobs must be array')
+
+    for (let job of jobs) {
+        validateObjectSchema(job, [
+            // name     // type  // required
+            ['id',      'i',     true],
+            ['signal',  'i',     true],
+            ['target',  's',     true],
+        ])
+    }
+
+    return await workers.sendSignals(jobs)
+}

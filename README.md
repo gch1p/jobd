@@ -609,6 +609,12 @@ Here is the list of supported requests, using `type(arguments)` notation.
     An object whose keys represent failed job IDs and whose values are error
     messages.
 
+* ##### `send-signal(jobs: object<id: int, signal: int>)`
+  Send signals to jobs which are still executing and return results.
+
+  Response [data](#data-array--object--string--int) type: **object** with job IDs as keys and
+  kill status (boolean where true means that signal is successfully delivered) as values.
+
 #### jobd-master requests
 
 * ##### `register-worker(targets: string[], name: string)`
@@ -634,6 +640,10 @@ Here is the list of supported requests, using `type(arguments)` notation.
 
 * ##### `run-manual(jobs: {id: int, target: string}[])`
   Send [`run-manual()`](#run-manualids-int) requests to registered jobd instances
+  serving specified targets, aggregate and return results.
+
+* ##### `send-signal(jobs: {id: int, signal: int, target: string}[])`
+  Send [`send-signal()`](#send-signal-jobs) requests to registered jobd instances
   serving specified targets, aggregate and return results.
 
 ### Response Message
@@ -665,7 +675,8 @@ Example (w/o trailing `EOT`):
 
 ## TODO
 
-- graceful shutdown
+- graceful shutdown of jobd
+- support signals in jobctl
 
 ## License
 

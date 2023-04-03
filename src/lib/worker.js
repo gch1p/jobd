@@ -44,6 +44,11 @@ class Worker extends EventEmitter {
          * @type {Logger}
          */
         this.logger = getLogger('Worker')
+
+        /**
+         * @type {{}}
+         */
+        this.runningProcesses = {}
     }
 
     /**
@@ -480,6 +485,7 @@ class Worker extends EventEmitter {
                 cwd,
                 env
             })
+            this.runningProcesses[id] = process
 
             let stdoutChunks = []
             let stderrChunks = []
@@ -490,6 +496,8 @@ class Worker extends EventEmitter {
                  * @param {null|string} signal
                  */
                 (code, signal) => {
+                    delete this.runningProcesses[id]
+
                     let stdout = stdoutChunks.join('')
                     let stderr = stderrChunks.join('')
 
@@ -505,6 +513,7 @@ class Worker extends EventEmitter {
                 })
 
             process.on('error', (error) => {
+                delete this.runningProcesses[id]
                 reject(error)
             })
 
@@ -599,6 +608,22 @@ class Worker extends EventEmitter {
             this.logger.debug(`onJobFinished: ${queue.length} < ${queue.concurrency}, calling poll(${target})`)
             this.poll()
         }
+    }
+
+    /**
+     * @param {number} id
+     * @param {number} signal
+     * @return {boolean}
+     */
+    killJobProcess(id, signal) {
+        if (this.runningProcesses[id] !== undefined) {
+            try {
+                return this.runningProcesses[id].kill(signal)
+            } catch (error) {
+                this.logger.error(`killJobProcess(${id}, ${signal})`, error)
+            }
+        }
+        return false
     }
 
 }

@@ -109,7 +109,10 @@ async function initApp(appName) {
     })
     logger = loggerModule.getLogger(appName)
 
-    process.title = appName
+    let processTitle = `${appName}`
+    if (config.get('name'))
+        processTitle += ` ${config.get('name')}`
+    process.title = processTitle
 }
 
 function initWorker() {
@@ -141,6 +144,7 @@ function initRequestHandler() {
     requestHandler.set('poll', onPollRequest)
     requestHandler.set('status', onStatus)
     requestHandler.set('run-manual', onRunManual)
+    requestHandler.set('send-signal', onSendSignal)
     requestHandler.set('pause', onPause)
     requestHandler.set('continue', onContinue)
     requestHandler.set('add-target', onAddTarget)
@@ -343,6 +347,18 @@ async function onRunManual(data) {
     }
 
     return P
+}
+
+async function onSendSignal(data) {
+    const {jobs: jobToSignalMap} = data
+    const results = {}
+    for (const id in jobToSignalMap) {
+        if (!jobToSignalMap.hasOwnProperty(id))
+            continue
+        const signal = jobToSignalMap[id]
+        results[id] = worker.killJobProcess(id, signal)
+    }
+    return results
 }
 
 /**
